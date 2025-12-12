@@ -1,0 +1,10 @@
+run("8-bit");
+setAutoThreshold("Default no-reset");
+//run("Threshold...");
+//setThreshold(0, 149);
+setOption("BlackBackground", true);
+run("Convert to Mask");
+run("Watershed");
+run("Analyze Particles...", "size=0.40-Infinity circularity=0.40-1.00 show=Outlines display clear");
+String.copyResults;
+String.copyResults;
