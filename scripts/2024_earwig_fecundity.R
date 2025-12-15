@@ -324,6 +324,28 @@ pp_check(trade_off.brms_cov.pro, resp = "scalenum", ndraws = 1000)
 pp_check(trade_off.brms_cov.pro, resp = "scalemeanperim", ndraws = 1000)
 
 
+egg.summary.four <- earwig_egg_summary.2 %>%
+  mutate( brood = fct_recode(brood,
+                             "0" = "one",
+                             "1" = "two"))
+egg.summary.four$brood <- as.numeric(egg.summary.four$brood)
+
+# using mean egg size
+number_perim_cov.2.pro.1 <- bf(mvbind(scale(egg.perim), scale(num)) ~ 1 + brood + scale(mean.pro) + (1|a|id)) + set_rescor(TRUE)
+trade_off.brms_cov.pro.1 <- brm(number_perim_cov.2.pro.1, data = egg.summary.four,
+                              family = gaussian(),
+                              cores = 6,
+                              chains = 6,
+                              thin=2,
+                              warmup = 300,
+                              iter = 1000,
+                              #prior=priors,
+                              sample_prior = TRUE,
+                              control = list(adapt_delta = 0.999),
+                              #file = "data/processed/trade_off.brms_cov.pro",
+                              seed = 12345)
+summary(trade_off.brms_cov.pro.1)
+
 # number_perim_cov.2.pc1 <- bf(mvbind(scale(mean.perim), scale(num)) ~ 1 + brood + pc1 + (1|p|id)) + set_rescor(TRUE) # mean.mass is best
 # trade_off.brms_cov.pc1 <- brm(number_perim_cov.2.pc1, data = total.data,
 #                               family = gaussian(),
