@@ -235,10 +235,6 @@ size.data.2 <- size.data %>%
 total.data.1 <- total.data %>%
   left_join(size.data.2, by="id")
 
-
-
-
-
 #### BRMS analysis ####
 
 hist(earwig_egg_summary.2$num)
