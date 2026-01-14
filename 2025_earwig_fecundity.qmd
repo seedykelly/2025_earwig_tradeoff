@@ -24,7 +24,7 @@ format:
     toc: false
     reference-doc: word-style-template.docx
 bibliography: Bibliography.bib
-csl: functional-ecology.csl
+csl: evolution.csl
 ---
 
 ```{r echo=FALSE}
@@ -40,13 +40,8 @@ knitr::read_chunk('scripts/2024_earwig_fecundity.R')
 \newpage
 
 # Abstract
-1. Life history theory predicts that clutch and egg size trade off because both traits compete for the same limited resource pool. Tests of this prediction often show a positive phenotypic correlation, probably because some females acquire more resources than others and can produce more and larger eggs. To accurately assess whether a trade-off exists, it is necessary to examine within-individual correlations, since phenotypic correlations can be misleading. 
+Life history theory predicts that clutch and egg size trade off because both traits compete for the same limited resource pool. Tests of this prediction often show a positive phenotypic correlation, probably because some females acquire more resources than others and can produce more and larger eggs. To accurately assess whether a trade-off exists, it is necessary to examine within-individual correlations, since phenotypic correlations can be misleading. I addressed this issue using a multivariate mixed model to decompose the phenotypic correlation between egg number and size in European earwigs (*Forficula auricularia*) into among-female and within-female (residual) components. I found that earwigs do not trade off clutch and egg size; instead, these traits are positively correlated. This unexpected result is likely due to changes in ovarian structure after laying the first clutch, combined with how limited resources are allocated to fewer developing oocytes in the second clutch. Contrary to expectation, evidence suggests that the among-female correlation is negative. Additionally, I found that second clutches have greater variation in egg size than first clutches, although the average variation in egg size among females is similar across clutches. Further research is needed to clarify the proximate reasons for the tendency of second clutches to have fewer and smaller eggs than first clutches, as well as to identify the proximate and ultimate causes of the greater variation in egg size in second clutches. 
 
-2. I addressed this issue using a multivariate mixed model to decompose the phenotypic correlation between egg number and size in wild-caught European earwigs (*Forficula auricularia*) into among-female and within-female (residual) components. 
-
-3. I found that earwigs do not trade off clutch and egg size; instead, these traits are positively correlated. This unexpected result is likely due to changes in ovarian structure after laying the first clutch, combined with how limited resources are allocated to fewer developing oocytes in the second clutch. Contrary to expectation, evidence suggests that the among-female correlation is negative. Additionally, I found that second clutches have greater variation in egg size than first clutches, although the average variation in egg size among females is similar across clutches. 
-
-4. Further research is needed to clarify the proximate reasons for the tendency of second clutches to have fewer and smaller eggs than first clutches, as well as to identify the proximate and ultimate causes of the greater variation in egg size in second clutches. 
 \newpage
 
 # Introduction
