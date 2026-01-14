@@ -454,6 +454,28 @@ summary(trade_off.brms_cov.pro.2)
 # ggsave(intercept.plot, filename="figure_2.jpg", width=10.83, height=10.83, dpi=300,antialias="default")    
 
 #### AMONG AND WITHIN EGG SIZE VARIATION ####
+
+fecundity.data <- total.data.1 %>%
+  filter(brood=="one")
+
+fecundity.bodysize = bf(num ~ mean.pronotum) # need to have (0+brood||id) in order to get sd_id_broodone and 
+# sd_id_broodtwo
+
+#run the model
+fecundity.bodysize.model <- brm(fecundity.bodysize,
+                      data = fecundity.data,
+                      family = poisson,
+                      cores = 6, 
+                      chains = 6, 
+                      warmup = 1000,
+                      iter = 4000,
+                      seed = 34, #make sure to set the seed to make results reproducible
+                      #file = "data/processed/egg.size.model.rds",
+                      control = list(adapt_delta = 0.999))
+summary(fecundity.bodysize.model)
+get_variables(fecundity.bodysize.model)
+pp_check(fecundity.bodysize.model,ndraws = 100)
+
 egg.size.bf = bf(scale(mean.perim) ~ mean.pronotum + brood + (1|a|id) + (0+brood||id), sigma ~ brood + (1|a|id)) # need to have (0+brood||id) in order to get sd_id_broodone and 
 # sd_id_broodtwo
 
