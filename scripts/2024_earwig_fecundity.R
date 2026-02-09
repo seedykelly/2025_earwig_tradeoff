@@ -319,6 +319,19 @@ trade_off.brms_cov.pro <- add_criterion(trade_off.brms_cov.pro, "loo")
 pp_check(trade_off.brms_cov.pro, resp = "scalenum", ndraws = 1000)
 pp_check(trade_off.brms_cov.pro, resp = "scalemeanperim", ndraws = 1000)
 
+# phenotypic correlation
+VarCorr(trade_off.brms_cov.pro)
+
+V.id.size = (VarCorr(trade_off.brms_cov.pro)$id$sd[1])^2
+V.id.num = (VarCorr(trade_off.brms_cov.pro)$id$sd[2])^2
+
+V.res.size = (VarCorr(trade_off.brms_cov.pro)$residual__$sd[1])^2
+V.res.num = (VarCorr(trade_off.brms_cov.pro)$residual__$sd[2])^2
+
+cov.id = (VarCorr(trade_off.brms_cov.pro)$id$cov[2])
+cov.res = (VarCorr(trade_off.brms_cov.pro)$residual__$cov[2])
+
+r.p = (cov.id + cov.res)/sqrt((V.id.size+V.res.size)*(V.id.num+V.res.num))
 
 egg.summary.four <- earwig_egg_summary.2 %>%
   mutate( brood = fct_recode(brood,
@@ -388,8 +401,11 @@ VarCorr(trade_off.brms_cov.smi)
 # these two are very similar
 
 pheno.corr.r <- trade_off.brms_cov.smi %>%
-  spread_draws(rescor__scalemeanperim__scalenum, cor_id__scalemeanperim_Intercept__scalenum_Intercept) %>%
-  mean_qi(r=rescor__scalemeanperim__scalenum+cor_id__scalemeanperim_Intercept__scalenum_Intercept)
+  spread_draws(cor_id__scalemeanperim_Intercept__scalenum_Intercept, sd_id__scalemeanperim_Intercept, sd_id__scalenum_Intercept, rescor__scalemeanperim__scalenum, sigma_scalenum, sigma_scalemeanperim) %>%
+  mean_qi(cov.id=cor_id__scalemeanperim_Intercept__scalenum_Intercept * sd_id__scalemeanperim_Intercept * sd_id__scalenum_Intercept, cov.res=rescor__scalemeanperim__scalenum* sigma_scalenum * sigma_scalemeanperim,
+          var.id.size=sd_id__scalemeanperim_Intercept^2, var.id.num=sd_id__scalenum_Intercept^2, var.res.size=sigma_scalemeanperim^2, var.res.num=sigma_scalenum^2,
+          r.p=(cov.id + cov.res)/sqrt((var.id.size+var.res.size)*(var.id.num+var.res.num))) %>%
+  dplyr::select(r.p, r.p.lower, r.p.upper)
 
 saveRDS(pheno.corr.r, file = "data/processed/pheno.corr.r.rds")
 
