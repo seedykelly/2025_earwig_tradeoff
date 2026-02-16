@@ -28,7 +28,6 @@ rep3 <- readRDS(file = "data/processed/rep3.rds")
 rep4 <- readRDS(file = "data/processed/rep4.rds")
 total.data <- readRDS(file = "data/processed/total.data.rds")
 earwig_egg_summary.2 <- readRDS(file = "data/processed/earwig_egg_summary.2.rds")
-earwig_egg_summary.2 <- readRDS(file = "data/processed/earwig_egg_summary.2.rds")
 earwig_egg_summary.3 <- readRDS(file = "data/processed/earwig_egg_summary.3.rds")
 trade_off.brms_cov.mass <- readRDS(file = "data/processed/trade_off.brms_cov.mass.rds")
 trade_off.brms_cov.pro <- readRDS(file = "data/processed/trade_off.brms_cov.pro.rds")
@@ -181,10 +180,14 @@ total.data$num.z <- scale(total.data$num, center = TRUE, scale = TRUE)
 
 saveRDS(total.data, file = "data/processed/total.data.rds")
 
-earwig_egg_summary.2 <- total.data %>%
+earwig_egg_summary.2 <- total.data.1 %>%
   mutate(brood = recode(brood, "1" = "one", "2" = "two")) %>%
   group_by(id, brood) %>%
-  summarise(num=n(), egg.perim = mean(mean.perim),pc1=mean(pc1), mean.pro=mean(mean.pronotum), mean.massy=mean(mean.mass), sd.egg=sd(mean.perim), CV=sd.egg/egg.perim) 
+  summarise(egg.number=n(), mean.egg.size = mean(mean.perim),pc1=mean(pc1), mean.pro=mean(mean.pronotum), mean.massy=mean(mean.mass), mean.sci=mean(Mi_hat)) 
+
+dat<-earwig_egg_summary.2 %>%
+  select(id, brood, egg.number,mean.egg.size) %>%
+  print(n=100)
 saveRDS(earwig_egg_summary.2, file = "data/processed/earwig_egg_summary.2.rds")
 
 earwig_egg_summary.3 <- total.data %>%
@@ -270,7 +273,8 @@ second.cor <- cor.test(body.size.clutch.2$mean.pro, body.size.clutch.2$num)
 tradeoff.plot <- ggplot(earwig_egg_summary.2, aes(x=num, y=egg.perim, colour=brood, group=id)) +
   geom_line(colour="black") +
   geom_point(size=5) +
-  ylab("Mean egg size (mm)") +
+  geom_errorbar(aes(ymin=egg.perim-sd.egg, ymax=egg.perim+sd.egg), width=.2) +
+  ylab("Mean (± SD) egg size (mm)") +
   xlab("Clutch size") +
   labs(color = "Clutch order") +
   scale_color_discrete(labels = c("First", "Second")) +
@@ -292,21 +296,20 @@ priors <- c(
   set_prior("lkj(2)", class = "cor"))
 
 # NULL
-# number_perim_cov.1 <- bf(mvbind(scale(mean.perim),scale(num)) ~ 1 + brood + (1|p|id)) + set_rescor(TRUE) #
-# trade_off.brms_cov.1 <- brm(number_perim_cov.1, data = total.data,
-#                             family = gaussian(),
-#                               cores = 6,
-#                               chains = 6,
-#                               warmup = 3000,
-#                               iter = 10000,
-#                               thin = 2,
-#                               prior=priors,
-#                               file = "data/processed/trade_off.brms_cov.1",
-#                               control = list(adapt_delta = 0.999),
-#                               seed = 12345)
-# summary(trade_off.brms_cov.1)
-# get_variables(trade_off.brms_cov.1)
-# trade_off.brms_cov.1 <- add_criterion(trade_off.brms_cov.1, "loo")
+number_perim_cov.null <- bf(mvbind(scale(mean.perim),scale(num)) ~ 1 + brood + (1|p|id)) + set_rescor(TRUE) #
+trade_off.brms_cov.null <- brm(number_perim_cov.null, data = total.data,
+                            family = gaussian(),
+                              cores = 6,
+                              chains = 6,
+                              warmup = 3000,
+                              iter = 10000,
+                              thin = 2,
+                              prior=priors,
+                              file = "data/processed/trade_off.brms_cov.null",
+                              control = list(adapt_delta = 0.999),
+                              seed = 12345)
+summary(trade_off.brms_cov.null)
+trade_off.brms_cov.null <- add_criterion(trade_off.brms_cov.null, "loo")
 
 # BODY MASS
 # need to see if model controlling for body size is better than null model and determine which body size proxy is best
@@ -342,11 +345,17 @@ trade_off.brms_cov.pro <- brm(number_perim_cov.2.pro, data = total.data,
                                control = list(adapt_delta = 0.999),
                                file = "data/processed/trade_off.brms_cov.pro",
                                seed = 12345)
-summary(trade_off.brms_cov.pro)
+summary(trade_off.brms_cov.pro, prob=0.95)
 trade_off.brms_cov.pro <- add_criterion(trade_off.brms_cov.pro, "loo")
 
 pp_check(trade_off.brms_cov.pro, resp = "scalenum", ndraws = 1000)
 pp_check(trade_off.brms_cov.pro, resp = "scalemeanperim", ndraws = 1000)
+
+trade_off.brms_cov.pro_fixed <- broom::tidy(trade_off.brms_cov.pro, effects = "fixed", conf.level = 0.95, fix.intercept = FALSE) %>%
+  mutate(
+    ci_width = abs(conf.low - conf.high)
+  )
+
 
 egg.summary.four <- earwig_egg_summary.2 %>%
   mutate( brood = fct_recode(brood,
@@ -725,298 +734,3 @@ koch.two <- koch %>%
 cor.test(koch$number, koch$size, method="spearman")
 cor.test(koch.one$number, koch.one$size, method="pearson")
 cor.test(koch.two$number, koch.two$size, method="spearman")
-
-#### junk ####
-# tests
-
-
-egg.size.bf.1 = bf(scale(mean.perim) ~ mean.mass + brood + (1|id) + (0+brood||id), sigma ~ 0 + brood + (1|id))
-#run the model
-egg.size.model.1 <- brm(egg.size.bf.1,
-                      data = total.data,
-                      family = gaussian,
-                      cores = 6, 
-                      chains = 6, 
-                      warmup = 1000,
-                      iter = 4000,
-                      seed = 34, #make sure to set the seed to make results reproducible
-                      #file = "data/processed/egg.size.model.1.rds",
-                      control = list(adapt_delta = 0.95))
-summary(egg.size.model.1)
-get_variables(egg.size.model.1)
-
-egg.size.bf.2 = bf(scale(mean.perim) ~ mean.mass + brood + (1|id) + (0+brood|id), sigma ~ 0 + brood + (1|id)) ## very interested in this one; random intercept for id in both part sof model and egg size in clutch one is correlated with clutch two
-#run the model
-egg.size.model.2 <- brm(egg.size.bf.2,
-                        data = total.data,
-                        family = gaussian,
-                        cores = 6, 
-                        chains = 6, 
-                        warmup = 1000,
-                        iter = 4000,
-                        seed = 34, #make sure to set the seed to make results reproducible
-                        #file = "data/processed/egg.size.model.2.rds",
-                        control = list(adapt_delta = 0.95))
-summary(egg.size.model.2)
-get_variables(egg.size.model.2)
-
-ranef(egg.size.model.2)
-
-egg.size.bf.3 = bf(scale(mean.perim) ~ mean.mass + brood + (0+brood|id), sigma ~ 0 + brood + (1|id))
-#run the model
-egg.size.model.3 <- brm(egg.size.bf.3,
-                        data = total.data,
-                        family = gaussian,
-                        cores = 6, 
-                        chains = 6, 
-                        warmup = 1000,
-                        iter = 4000,
-                        seed = 34, #make sure to set the seed to make results reproducible
-                        #file = "data/processed/egg.size.model.3.rds",
-                        control = list(adapt_delta = 0.95))
-summary(egg.size.model.3)
-get_variables(egg.size.model.3)
-
-
-egg.size.bf.4 = bf(scale(mean.perim) ~ mean.mass + brood + (0+brood|id), sigma ~ 0 + brood)
-#run the model
-egg.size.model.4 <- brm(egg.size.bf.4,
-                        data = total.data,
-                        family = gaussian,
-                        cores = 6, 
-                        chains = 6, 
-                        warmup = 1000,
-                        iter = 4000,
-                        seed = 34, #make sure to set the seed to make results reproducible
-                        #file = "data/processed/egg.size.model.4.rds",
-                        control = list(adapt_delta = 0.95))
-summary(egg.size.model.4)
-get_variables(egg.size.model.4)
-
-egg.size.bf.6 = bf(scale(mean.perim) ~ mean.mass + brood + (1+brood|id), sigma ~ 0 + brood)
-#run the model
-egg.size.model.6 <- brm(egg.size.bf.6,
-                        data = total.data,
-                        family = gaussian,
-                        cores = 6, 
-                        chains = 6, 
-                        warmup = 1000,
-                        iter = 4000,
-                        seed = 34, #make sure to set the seed to make results reproducible
-                        #file = "data/processed/egg.size.model.4.rds",
-                        control = list(adapt_delta = 0.95))
-summary(egg.size.model.6)
-get_variables(egg.size.model.6)
-
-
-egg.size.bf.5 = bf(scale(mean.perim) ~ mean.mass + brood + (1|a|id) + (0+brood|id), sigma ~ 0 + brood + (1|a|id)) ## very interested in this one; random intercept for id in both part sof model and egg size in clutch one is correlated with clutch two
-#run the model
-egg.size.model.5 <- brm(egg.size.bf.5,
-                        data = total.data,
-                        family = gaussian,
-                        cores = 6, 
-                        chains = 6, 
-                        warmup = 1000,
-                        iter = 4000,
-                        seed = 34, #make sure to set the seed to make results reproducible
-                        #file = "data/processed/egg.size.model.2.rds",
-                        control = list(adapt_delta = 0.95))
-summary(egg.size.model.5)
-get_variables(egg.size.model.5)
-
-egg.size.bf.7 = bf(scale(mean.perim) ~ mean.mass + brood + (1+brood||id), sigma ~ 0 + brood) ## very interested in this one; random intercept for id in both part sof model and egg size in clutch one is correlated with clutch two
-#run the model
-egg.size.model.7 <- brm(egg.size.bf.7,
-                        data = total.data,
-                        family = gaussian,
-                        cores = 6, 
-                        chains = 6, 
-                        warmup = 1000,
-                        iter = 4000,
-                        seed = 34, #make sure to set the seed to make results reproducible
-                        #file = "data/processed/egg.size.model.2.rds",
-                        control = list(adapt_delta = 0.95))
-summary(egg.size.model.7)
-get_variables(egg.size.model.7)
-
-
-
-
-
-
-
-
-nd <- tibble(x_s = seq(from = -3, to = 3, length.out = d %>% nrow()))
-
-fitted(trade_off.brms_cov.2a) %>% 
-  data.frame() %>% 
-  bind_cols(nd) %>% 
-
-number_perim_2 <- bf(mvbind(scale(mean.perim),scale(num)) ~ 1 + brood + (1 + brood|p|id)) + set_rescor(TRUE) # gives two values for each id
-trade_off.brms_2 <- brm(number_perim_cov.2, data = total.data.2,
-                            cores = 4,
-                            chains = 4,
-                            warmup = 300,
-                            iter = 600,
-                            thin = 2,
-                            seed = 12345)
-summary(trade_off.brms_2)
-get_variables(trade_off.brms_2, summary=TRUE)
-
-
-coef(trade_off.brms_cov.2a) 
-
-corr_draws <- trade_off.brms_cov.2 %>%
-  spread_draws(Intercept_num) 
-
-posterior_draws <- as_draws_df(trade_off.brms_cov.2)
-
-VarCorr(trade_off.brms_cov.2)
-
-trade_off.brms_cov.2a %>%
-  spread_draws(r_id__scalemeanperim[id,term], r_id__scalenum[id, term],Intercept_scalenum, Intercept_scalemeanperim, sigma_scalenum, sigma_scalemeanperim) %>%
-  group_by(id, term) %>%   # this line not necessary (done by spread_draws)
-  mean_qi(Intercept_scalenum,sigma_scalemeanperim,sigma_scalenum) %>%
-  #filter(id=="8WOPO") %>%
-  ggplot(aes(x=mean.num, y=mean.perim, group=id)) +
-  geom_point() +
-  geom_line()
-
-# egg size
-df_1 <-
-  # with this line we select each of the 20 cafe's posterior mean (i.e., Estimate)
-  # for both `Intercept` and `afternoon`
-  coef(trade_off.brms_cov.2a)$id[ , 1, 1:2] %>%
-  as.data.frame() %>%
-  rownames_to_column(var = "id") %>%
-  rename(one = scalemeanperim_Intercept) %>%
-  mutate(two = one + scalemeanperim_brood) %>%
-  dplyr::select(c(-scalemeanperim_brood)) %>%
-  pivot_longer(cols = one:two, 
-               names_to = "brood",
-               values_to = "size")
-# brood size 
-df_2 <-
-  # with this line we select each of the 20 cafe's posterior mean (i.e., Estimate)
-  # for both `Intercept` and `afternoon`
-  coef(trade_off.brms_cov.2a)$id[ , 1, 3:4] %>%
-  as.data.frame() %>%
-  rownames_to_column(var = "id") %>%
-  rename(one = scalenum_Intercept) %>%
-  mutate(two = one + scalenum_brood) %>%
-  dplyr::select(c(-scalenum_brood)) %>%
-  pivot_longer(cols = one:two, 
-               names_to = "brood",
-               values_to = "number")
-
-egg.corr <- df_1 %>%
-  left_join(df_2, by= c("id", "brood"))
-
-ggplot(egg.corr, aes(x=number, y=size, group=id)) +
-  geom_point() +
-  geom_line()
-
-ggplot(earwig_egg_summary.2, aes(x=num, y=egg.perim, colour=brood, group=id)) +
-  geom_point() +
-  geom_line()
-
-# brood one
-cor.test(~num + egg.perim, method = "spearman", data=earwig_egg_summary.2,  subset = (brood == "one")) # no trade-off
-cor.test(~number + size, method = "spearman", data=egg.corr,  subset = (brood == "one")) # positive
-corr.data1 <- earwig_egg_summary.2 %>%
-  filter(brood=="one")
-  pcor.test(corr.data1$num, corr.data1$egg.perim, corr.data1$pc1, method = "spearman") # no trade-off
-
-# brood two
-cor.test(~num + egg.perim, method = "spearman", data=earwig_egg_summary.2,  subset = (brood == "two")) # trade-off
-cor.test(~number + size, method = "spearman", data=egg.corr,  subset = (brood == "two")) # no trade-off
-corr.data2 <- earwig_egg_summary.2 %>%
-  filter(brood=="two")
-pcor.test(corr.data2$num, corr.data2$egg.perim, corr.data2$pc1, method = "spearman") # trade-off
-
-# pooled
-cor.test(~num + egg.perim, method = "pearson", data=earwig_egg_summary.2) # no trade-off
-cor.test(~number + size, method = "spearman", data=egg.corr) # positve
-pcor.test(earwig_egg_summary.2$num, earwig_egg_summary.2$egg.perim, earwig_egg_summary.2$pc1, method = "spearman") # no trade-off
-
-# among-individual correlation
-draws.among.corr.brms.cov <- trade_off.brms_cov.2 %>%
-  gather_draws(
-    cor_id__meanperim_Intercept__num_Intercept
-  ) %>%
-  mean_qi %>%
-  ungroup() %>%
-  mutate(
-    .variable = case_match(
-      .variable,
-      "cor_id__meanperim_Intercept__num_Intercept"  ~ "size—number"
-    )
-  )  %>%
-  dplyr::select(-.width, -.point, -.interval) %>%
-  mutate(category = rep(c('among'), 15, length.out = n()))
-
-# within-individual correlation
-draws.within.corr.brms.cov <- trade_off.brms_cov.2 %>%
-  gather_draws(
-    rescor__meanperim__num
-  ) %>%
-  mean_qi %>%
-  ungroup() %>%
-  mutate(
-    .variable = case_match(
-      .variable,
-      "rescor__meanperim__num"  ~ "size—number"
-    )
-  )  %>%
-  dplyr::select(-.width, -.point, -.interval) %>%
-  mutate(category = rep(c('within'), 1, length.out = n())) 
-
-number_perim_cov.4 <- bf(mvbind(mean.perim,num) ~ 1 + pc1 + brood + (1 + brood|p|id)) + set_rescor(FALSE) # gives two values for each id
-trade_off.brms_cov.4 <- brm(number_perim_cov.4, data = total.data.2,
-                            family = c(gaussian, gaussian),
-                            cores = 4,
-                            chains = 4,
-                            warmup = 300,
-                            iter = 600,
-                            thin = 2,
-                            seed = 12345)
-summary(trade_off.brms_cov.4)
-get_variables(trade_off.brms_cov.4)
-
-
-VarCorr(trade_off.brms_cov.4)
-
-cov.num.perim <- -0.258466479
-#residual + individual
-num.var <- 5.305397e-05 + 14.23216253 + 14.09075647 
-perim.var <- 2.695111e-01 + 0.05795814 + 0.06313121
-
-cov.num.perim/sqrt(num.var*perim.var) # phenotypic corr
-
-# raw correlation
-number_perim.cov.raw <- bf(mvbind(mean.perim,num) ~ 1 + pc1 + brood + (1 + brood|p|id)) + set_rescor(FALSE)
-trade_off.brms.cov.raw <- brm(number_perim.cov.raw, data = total.data.2,
-                              family=c(gaussian,poisson),
-                      cores = 4,
-                      chains = 4,
-                      warmup = 300,
-                      iter = 600,
-                      thin = 2,
-                      seed = 12345)
-summary(trade_off.brms.raw)
-get_variables(trade_off.brms.raw)
-
-draws.raw.corr.brms.cov <- trade_off.brms.raw %>%
-  gather_draws(
-    cor_id__meanperim_Intercept__num_Intercept
-  ) %>%
-  mean_qi %>%
-  ungroup() %>%
-  mutate(
-    .variable = case_match(
-      .variable,
-      "cor_id__meanperim_Intercept__num_Intercept"  ~ "size—number"
-    )
-  )  %>%
-  dplyr::select(-.width, -.point, -.interval) %>%
-  mutate(category = rep(c('raw'), 15, length.out = n()))

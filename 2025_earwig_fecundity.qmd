@@ -1,0 +1,147 @@
+---
+title: "Residual correlation shows that European earwigs do not trade off clutch and egg size."
+authors:
+  - name: Clint D. Kelly
+    affiliations:
+      - ref: cdk
+    corresponding: true
+    email: kelly.clint@uqam.ca
+    orcid: 0000-0002-0693-7211
+    
+affiliations:
+  - id: cdk
+    name: Département des Sciences biologiques, Université du Québec à Montréal, Montréal, Canada
+
+filters:
+  - authors-block
+
+crossref:
+  fig-prefix: Figure   # (default is "Figure")
+  tbl-prefix: Table    # (default is "Table")
+
+format:
+  docx:
+    toc: false
+    reference-doc: word-style-template.docx
+bibliography: Bibliography.bib
+csl: proceedings-of-the-royal-society-b.csl
+---
+
+```{r echo=FALSE}
+knitr::read_chunk('scripts/2024_earwig_fecundity.R')
+```
+
+```{r load_libraries, include=FALSE,echo=FALSE, warning=FALSE, results="hide"}
+```
+
+```{r load_data, echo=FALSE, warning=FALSE, results="hide", include=FALSE}
+```
+
+\newpage
+
+# Abstract
+Life history theory predicts that clutch and egg size trade off because both traits compete for the same limited resource pool. Tests of this prediction often show a positive phenotypic correlation, probably because some females acquire more resources than others and can produce more and larger eggs. To accurately assess whether a trade-off exists, it is necessary to examine within-individual correlations, since phenotypic correlations can be misleading. I addressed this issue using a multivariate mixed model to decompose the phenotypic correlation between egg number and size in European earwigs (*Forficula auricularia*) into among-female and within-female (residual) components. I found that earwigs do not trade off clutch and egg size; instead, these traits are positively correlated. This unexpected result is likely due to changes in ovarian structure after laying the first clutch, combined with how limited resources are allocated to fewer developing oocytes in the second clutch. Additionally, I found that second clutches have greater variation in egg size than first clutches, although the average variation in egg size among females is similar across clutches. Further research is needed to clarify the proximate reasons for the tendency of second clutches to have fewer and smaller eggs than first clutches, as well as to identify the proximate and ultimate causes of the greater variation in egg size in second clutches. 
+\newpage
+
+# Introduction
+Maternal investment is allocated between offspring fitness and quantity, with larger eggs generally enhancing offspring fitness [@clutton-brock1991]. A limited pool of reproductive resources, therefore, requires females to balance investment between the number and quality of eggs produced during a reproductive cycle [@smith1974; @roff1992a; @fox2000; see also @parker1982]. However, these traits do not always trade off against each other [@cavaleiro2014; @roff1992a; @bernardo1996; @stearns1992; @hargitai2005; @fox2000]. Or at least, they do not appear to trade off. Positive correlations between traits that should otherwise covary negatively could be due to how individuals acquire resources and subsequently allocate them among competing traits [@reznick2000]. Van Noordwijk and DeJong [-@vannoordwijk1986; see also @reznick2000] explained that whether we observe positive or negative correlations between fitness-related traits (e.g., egg number or egg size) depends on whether some individuals in a population can acquire more resources than others and thus possess a larger resource pool that can be partitioned to competing traits. Consequently, such variation in acquisition can lead to a positive correlation between traits (e.g., egg number vs. egg size) when measured across individuals within a population, while masking allocation trade-offs within individuals (assuming that all individuals follow a similar allocation strategy) [i.e Simpson’s Paradox, @simpson1951].  This means that females that acquire more reproductive resources can produce more and larger eggs, but must nevertheless trade off size and number. 
+
+Careau and Wilson [-@careau2017] argue that revealing a trade-off when contrasting processes occur at the among- and within-individual levels requires partitioning the phenotypic correlation between two competing traits into its among- and within-individual components. This can be achieved by repeatedly measuring traits of interest (i.e. egg number and size) for a group of individuals and then using multivariate mixed models to estimate the among- and within-individual correlations. To my knowledge, no study has yet adopted this approach to show that females indeed trade off egg number and size, despite these traits positively correlating across a population of females. I use the approach of Careau and Wilson [-@careau2017] here to test the hypothesis that European earwigs (*Forficula auricularia*) trade off clutch and egg size. *F. auricularia* is an ideal insect for testing this hypothesis because females lay a single clutch of eggs in a subterranean burrow within a short period of time (i.e. hours) [@meunier2024].  Females care for eggs and the nymphs for up to 2 weeks post-hatching [@meunier2024; @staerkle2008].  Earwigs in Quebec, Canada, are semelparous because the harsh environmental conditions extend the incubation and egg-care period beyond the point at which a second clutch is possible [@tourneur2018]. However, females can be induced to lay a second clutch under optimal laboratory conditions. I use this system to test the prediction that if resource allocation to clutches is greater among than within individuals, then the phenotypic and among-individual correlations between egg size and number will be positive, but the within-individual correlation will be negative because individual females trade off egg number for size. Second, I compare the average number and size of eggs across clutches to test whether fitness gains are optimised at a specific egg quantity or quality [e.g., @smith1974]. If so, one trait should not differ between clutches (e.g., egg number), whereas the other (e.g., egg size) is adjusted accordingly [@winkler1987].Alternatively, females laying a second clutch may recognise their low residual reproductive value and, consequently, terminally invest in current reproduction by producing either more or larger eggs in this clutch [@clutton-brock1984]. Finally, I explore whether eggs in first and second clutches differ in their size variation at the among- and within-female (clutch) levels [e.g. @hargitai2005].
+
+# Methods
+I collected adult female earwigs in September and October 2024 in an urban parks (Parc Outremont) in Montréal, Canada. All earwigs were brought into the laboratory, assigned a unique ID, and individually placed in a 90-mm-diameter Petri dish containing a thin layer of moist sand. Females were provided a cotton-plugged water vial and fed TetraMin Tropical fish flakes ad libitum. Females were maintained in an incubator (Percival) at 10°C in constant darkness.
+
+Females were checked daily for oviposition. When a female laid eggs, I recorded the date and collected all eggs from the sand and placed them on filter paper in a new Petri dish. The eggs were then photographed under a Leica S6D stereo microscope (Leica Microsystems Inc., Concord, ON, Canada) at 0.68x magnification using Enersight software (Leica Microsystems Inc., Concord, ON, Canada), which automatically adds a scale bar to the photo. Eggs were then discarded.
+
+To stimulate females to lay a second clutch of eggs, I recreated a brief period of spring where they were allowed to accumulate resources for egg production and replenish their sperm stores. To achieve this, females that had recently oviposited were placed in a new Petri dish containing a cotton-plugged water vial, TetraMin Tropical fish flakes, and a shelter consisting of four 4 cm-long pieces of paper straw  (Blowholes, Markham, Canada) glued together. These Petri dishes were placed in a 23 °C incubator with a 12L:12D light: dark cycle. Females were maintained under these conditions for two weeks, at which time a haphazardly chosen stock male from our colony was placed with her. The pair was kept together for a week, after which a new stock male replaced the original male, and that pair was kept together for another week. Females were then transferred to the 10 °C incubator and treated as previously until they laid their second clutch, at which point their eggs were photographed. Females were euthanised by freezing after laying their second clutch, and their pronotum was photographed as described above. Females were then weighed to the nearest 0.01 mg using a Sartorius Secura 224-1S analytical balance. Females were weighed three times, with each weighing bout separated by four days. I used Fiji image analysis software [@schindelin2012] to measure the length of the female pronotum and the perimeter of each egg to the nearest 0.001 mm. Both traits were measured three times, with each measurement separated by 4 days.
+
+### Statistical analysis
+I calculated the repeatability of the body mass, pronotum length and egg perimeter measurements using the R package *rptR* [@stoffel2017]. I entered the trait of interest as the response variable, female ID as a random effect, and assumed a Gaussian distribution. Each analysis was based on 1000 bootstrap samples. Because the measurements of my three traits were highly repeatable (pronotum length: *R* [95% CI] = `r myround(rep1$R, 2)` [`r myround(rep1$CI_emp[1,1],2)`, `r myround(rep1$CI_emp[1,2],2)`]; body mass: *R* [95% CI] = `r myround(rep2$R, 2)` [`r myround(rep2$CI_emp[1,1],3)`, `r myround(rep2$CI_emp[1,2],3)`]; egg perimeter in the first brood: *R* [95% CI] = `r myround(rep3$R,3)` [`r myround(rep3$CI_emp[1,1],3)`, `r myround(rep3$CI_emp[1,2],3)`] and in the second brood: *R* [95% CI] = `r myround(rep4$R, 2)` [`r myround(rep4$CI_emp[1,1],3)`, `r myround(rep4$CI_emp[1,2],3)`] ). I used each female’s mean value for each trait in all subsequent analyses.
+
+I reduced the two measurements representing body size (pronotum length and body mass) to a single value (PC1)  by performing a principal components analysis (PCA) on the correlation matrix of standardized measurements using the *prcomp* function in the stats package in R [@r2013]. The first PC accounted for 60.8% of the variation. I also standardised female body mass relative to body size using the scaled mass index procedure of Peig and Green [-@peig2009; -@peig2010; see also @kelly2014].
+
+I tested the prediction that egg number and egg size trade off within females using a Bayesian multivariate linear mixed-effects model (*brms* package, @burkner2017). Egg number and egg perimeter were entered as scaled response variables, and *res_cor* was set to TRUE to estimate the within-individual (residual) correlation (*r*~within~) between egg number and egg size. I assumed a Gaussian error distribution for both traits to permit the calculation of within-female residuals. Clutch number (first or second) was entered as a fixed effect to test whether the two clutches differed in egg number or egg size. This model also included female scaled mass as a continuous covariate because body size generally correlates with fecundity in insects [@honek1993]. Female ID was included as a random effect via the term (1|a|id), ensuring that random effects were correlated within each female. I assessed which of the four measures of female body size (pronotum length, body mass, PC1, or scaled mass) provided the greatest explanatory power by running three models, each with a different measure, and then comparing them,  in addition to a null model without a size measure, using leave-one-out cross-validation (LOO) [@vehtari2017]. Pronotum length, body mass, and scaled mass were scaled (mean = 0, sd = 1) before analysis. The model that included pronotum length as a continuous covariate provided the best fit (Expected Log Predictive Density (ELPD) = `r myround(data.frame(size.comparison)[1,3],2)`). I report the among- (*r*~among~) and within- (residual, *r*~within~) female correlations and associated 95% credible intervals (CrIs) from the model and sum these two values to estimate the phenotypic correlation (*r*~p~) and its associated 95% CrI.
+
+I examined whether the first and second clutches of eggs differed in egg size variation among (*V*~among~) and within (*V*~within~) females by constructing a univariate hierarchical linear mixed-effects model with scaled mean egg perimeter as the response variable, clutch (first or second) as a fixed effect, and female body mass as a continuous covariate. I also included, as random effects, a random slope for each clutch for each female. In the dispersion part of the model, I included clutch as a fixed effect to estimate the within-individual (i.e. residual) variance in egg size for each clutch. I then tested whether the first and second clutch differed in egg size at the among- and within-female levels.
+
+Bayesian mixed models were run for 10000 iterations (3000 warm-up iterations) across 6 chains, with a thinning interval of 2 (total post-warm-up samples = 21,000). I used weakly informative normal priors (N (0,10)) for fixed effects and positively bound exponential (1) priors for random effects in multivariate models. The univariate hierarchical mixed models were run using default priors. I performed posterior predictive checks to ensure adequate model fits, while trace plots confirmed that models converged with low among-chain variability (Rhat = 1.00). I report posterior means with 95% credible intervals (CrIs) for all parameter estimates, where inference was based on CrIs that did not include zero.
+
+
+# Results
+I did not support the prediction that egg number and egg size positively correlate either phenotypically (*r*~p~ [95% CrI] =  `r myround(pheno.corr.r[[1,1]],2)` [`r myround(pheno.corr.r[[1,2]],2)`, `r myround(pheno.corr.r[[1,3]],2)`]; @fig-one) or among females (*r*~among~ [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[9,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[9,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[9,9]],2)`]). Contrary to prediction, egg number and size were positively, rather than negatively, correlated at the within-individual level (*r*~within~ [95% CrI] = `r myround(res_cor[[1,1]],2)` [`r myround(res_cor[[1,2]],2)`, `r myround(res_cor[[1,3]],2)`]). 
+
+I found that second clutches ($\bar{x}$ = `r myround(earwig_egg_summary.3[[2,3]],2)` ± `r myround(earwig_egg_summary.3[[2,4]],2)` eggs, range: `r earwig_egg_summary.3[[2,5]]` - `r earwig_egg_summary.3[[2,6]]` eggs, n = `r earwig_egg_summary.3[[2,2]]` clutches) were, on average, smaller than first clutches ($\bar{x}$ = `r myround(earwig_egg_summary.3[[1,3]],2)` ± `r myround(earwig_egg_summary.3[[1,4]],2)` eggs, range: `r earwig_egg_summary.3[[1,5]]` - `r earwig_egg_summary.3[[1,6]]` eggs, n = `r earwig_egg_summary.3[[1,2]]` clutches; multivariate mixed model: Estimate [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[3,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[3,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[3,9]],2)`]). Similarly, egg size was smaller, on average, in second clutches ($\bar{x}$ = `r myround(earwig_egg_summary.3[[2,7]],2)` ± `r myround(earwig_egg_summary.3[[2,8]],2)` mm, range: `r myround(earwig_egg_summary.3[[2,9]],2)` - `r myround(earwig_egg_summary.3[[2,10]],2)` mm) versus first clutches ($\bar{x}$ = `r myround(earwig_egg_summary.3[[1,7]],2)` ± `r myround(earwig_egg_summary.3[[1,8]],2)` mm, range: `r myround(earwig_egg_summary.3[[1,9]],2)` - `r myround(earwig_egg_summary.3[[1,10]],2)` mm; Estimate [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[5,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[5,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[5,9]],2)`]). These findings suggest that larger clutches had, on average, larger eggs, which supports the aforementioned positive within-female correlation. Female pronotum length (body size) was not correlated with either clutch (Estimate [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[6,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[6,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[6,9]],2)`]) or egg (Estimate [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[4,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[4,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[4,9]],2)`]) size. ###Egg size exhibited significant repeatability  across female broods (*R* [95% CI] = `r myround(rep.size$R[1,2],2)` [`r myround(rep.size$CI_emp[2,1],2)`, `r myround(rep.size$CI_emp[2,2],2)`]) while clutch size did not (*R* = `r myround(rep.num$R[2,1],2)` [`r myround(rep.num$CI_emp$CI_link[1,1],)`, `r myround(rep.num$CI_emp$CI_link[1,2],2)`]).###
+
+```{r include=FALSE,echo=FALSE, warning=FALSE, results="hide"}
+brood.one <- earwig_egg_summary.2 %>%
+  filter(brood=="one")
+brood.one.r <- cor.test(brood.one$sd.egg, brood.one$num, method = "spearman")
+brood.two <- earwig_egg_summary.2 %>%
+  filter(brood=="two")
+brood.two.r <- cor.test(brood.two$sd.egg, brood.two$num, method= "spearman")
+```
+There was no difference in egg size variation between first and second clutches among females ($\Delta$*V*~among~ [95% CrI] = `r myround(brood.va.delta[1,2],2)` [`r myround(brood.va.delta[[1,3]],2)`, `r myround(brood.va.delta[[1,4]],2)`]; @fig-two) but within-clutch egg size variation was smaller in first than in second clutches  ($\Delta$*V*~within~ [95% CrI] = `r myround(brood.vw.delta[1,2],2)` [`r myround(brood.vw.delta[[1,3]],2)`, `r myround(brood.vw.delta[[1,4]],2)`]; @fig-two). Within-clutch egg size variation (i.e. standard deviation of egg size per clutch) was related to clutch size in first ($\rho$ = `r myround(brood.one.r$estimate,2)`, `r pvalue(brood.one.r$p.value,accuracy = 0.001, add_p=TRUE)`) but not in second ($\rho$ = `r myround(brood.two.r$estimate,2)`, `r pvalue(brood.two.r$p.value,accuracy = 0.001, add_p=TRUE)`) clutches.
+
+
+# Discussion
+My multivariate repeated-measures analysis of clutch and egg size found no evidence that female European earwigs trade off egg number and egg size. Although my finding fails to support general life history theory [@roff1992a; @stearns1992] and contradicts the results of a previous study in this species [@koch2014], it is the first to partition the phenotypic correlation between egg number and size into its among and within-individual components. Although many studies have supported the prediction that egg number and size trade off, some have not [@roff1992a; @fox2000]. Because these studies relied on phenotypic correlations to examine the relationship between egg number and size, it is not possible to assess the extent to which this prediction is empirically supported across taxa, given the propensity for phenotypic correlations to generate spurious and misleading associations. For example, Koch and Meunier (2014) showed that, in an Italian population of *F. auricularia*, residual egg number and residual egg size (adjusted for female body mass) are negatively correlated at the phenotypic level. However, these findings must be treated with caution; they are based on pseudo-replicated data (both clutches for each female were pooled and treated as independent), a situation that can lead to Simpson’s Paradox [@simpson1951] and spurious correlations because within-individual relationships are masked by among-individual variation.  Indeed, I also observed a negative correlation, albeit weaker, at the phenotypic level. However, by partitioning the variance into its among- and within-individual components, I found that females do not make the predicted trade-off.
+
+Contrary to prediction, my study found evidence that egg number and size are positively correlated within females. Indeed, second clutches comprised, on average, fewer and smaller eggs than first clutches. My findings are consistent with those of another study on a Montreal population [@tourneur1992] and with one involving an Italian population [@koch2014]. Tourneur and Gingras [-@tourneur1992] attributed the fewer, smaller eggs in second clutches to ovarian structure and function in *F. auricularia*. Specifically, they suggested that second clutches are smaller than first ones because some (or all) oviarioles become non-functional and thus produce no eggs after the first clutch. This reduction in ovariole number might explain the smaller second clutches that I observed here, but why did females not produce larger eggs and thus exhibit the expected number-size trade-off?  One possibility is that females had a shallower resource pool from which to build eggs for the second clutch, for example, because they had less time to accumulate reproductive resources for the second clutch than for the first. Females in the wild presumably spent from mid-spring to mid-fall acquiring resources for reproduction, while they had only about a month in the laboratory to do so for the second one. Hence, by partitioning their limited resources to each functional ovariole during their second bout of oogenesis, females produced fewer and smaller eggs than in their first clutches. This proximate explanation assumes that females use a resource-allocation strategy for eggs that does not vary across clutches. However, further research is needed to support this assumption.
+
+In most animal taxa, larger eggs generally have a higher probability of hatching and producing larger offspring, which, in turn, have a higher probability of surviving to adulthood [e.g. birds: @williams1994; amphibians: @ficetola2009; reptiles: @nelson2004; fish: @einum2000]. Although this does not appear to be the typical case in insects [@church2019], larger eggs are more likely to hatch and to produce larger nymphs in *F. auricularia* [@koch2014], so egg size appears to have some positive fitness effects for the mother and offspring in this species. Therefore, the smaller earwig eggs in the second clutch by female *F. auricularia* might have reduced fitness, except for two mediating factors. First, maternal care in this species likely improves the survival chances of smaller eggs [e.g., @kolliker2007; @boos2014], and the poor outcomes commonly associated with smaller nymphs might be mitigated by maternal provisioning [@staerkle2008]. Second, smaller eggs tend to hatch faster as development time is positively related to egg size across animal species [@shine1978]. This would be advantageous if a second clutch is produced later in the reproductive season, such as mid-winter, because it would mean the eggs would hatch at a time of year (e.g., late-winter) that allows nymphs to emerge at an optimal time in spring. Empirical evidence, however, suggests that time-to-hatch is unrelated to egg mass in at least one population of *F. auricularia* [@koch2014].
+
+Among-female variation in average egg size was similar in both clutches, meaning that females exhibited similar levels of individuality in average egg size in both clutches. The repeatability of average egg size between clutches could indicate that egg size is a significantly heritable trait [e.g. @falconer1996]. This would not be surprising as egg size has been demonstrated to be significantly heritable in a variety of insect species, including *Callosobruchus chinensis* seed beetles [@yanagi2006], *Parnara guttata guttata* butterflies [@seko2006], *Lobesia botrana* moths [@torres-vila2012], and spruce budworm (*Choristoneura fumiferana*) [@harvey1983].  Moreover, the lack of between-female variation in average egg size between first and second clutches suggests that the food-acquisition environment (i.e. wild vs. lab) had little effect on average egg size.
+
+In contrast, I found evidence that variation in egg size within a clutch was greater in second clutches than in first clutches, the opposite of the pattern observed in birds. [e.g., @yosef2008]. Empiricists have argued that lower variation in egg size within a clutch is probably linked to environmental factors and food availability. For example, desert finches (*Rhodopsiza obsoleta*) produced similar-sized eggs when environmental conditions were stable [@yosef2008], collared flycatchers (*Ficedula albicollis*) produced larger eggs with the laying sequence in favourable conditions [@hargitai2005], and blue tits (*Paris caeruleus*) in better nutritional condition had clutches with less variation in egg size [@nilsson1993]. Although information on intraclutch egg-size variation and its proximal drivers is scarce in insects, the same principles may apply, given that female earwigs in my study had less time to accumulate resources and maximise their body condition before producing their second clutch. If true, then females might have allocated resources maximally to the eggs in their first clutch, following an individual allocation strategy based on intrinsic factors such as body condition. This strategy would produce individual-specific egg sizes that are consistent across eggs within a clutch. In second clutches, by contrast, females might have allocated an optimal (but smaller) amount of resources to each oocyte until the last few oocytes, when they had fewer resources remaining and thus produced a few significantly smaller eggs. I did not record laying order in this study and therefore cannot assess whether larger eggs were laid first or last. Within-clutch variation in egg size is adaptive in birds. For example, larger eggs later in the egg-laying sequence may be a brood-survival strategy that counteracts the effects of hatching asynchrony, whereas smaller eggs later in the laying sequence may be a brood-reduction strategy [@slagsvold1984]. However, it is unknown whether variation in egg size has an equivalent adaptive function in insects expressing maternal care.
+
+In conclusion, by partitioning variance into its among- and within-individual components, I found that female European earwigs do not trade off clutch and egg size. Instead, I found a positive correlation between egg number and size. I also discovered that second clutches consist of eggs with more variable size than first clutches, but the among-female variation in average egg size was similar between the two clutches. 
+
+
+ 
+# Data availability
+
+Data are available through the OSF repository at 10.17605/OSF.IO/MFJ8E.
+
+# Author contributions
+
+CDK collected and analyzed the data, and wrote the manuscript.
+
+# Funding
+
+The study was funded by a Discovery Grant from the Natural Sciences and Engineering Research Council of Canada (NSERC).
+
+# Conflict of Interest
+
+I declare no conflict of interest.
+
+# Acknowledgements
+I thank Andréanne Nault and Clara Smythe for assistance in animal care and data collection.
+
+
+\newpage
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
+
+```{r}
+#| echo: false
+#| results: asis
+block_section(
+  prop_section(
+    page_size = page_size(orient = "portrait"),
+    type = "continuous"
+  )
+)
+```
+
+\newpage
+  )
+)
+
+##Figures
+
+![Mean egg perimeter (mm) plotted against clutch size for the first (salmon) and second (blue) clutches of n = 42 female European earwigs (*F. auricularia*). Data are raw values.](figure_1.jpg){#fig-one}
+
+![(a) Among and (b) within-female egg size variation in the first and second clutches of n = 42 female European earwigs (*F. auricularia*).](figure_2.jpg){#fig-two}

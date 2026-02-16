@@ -28,13 +28,10 @@ csl: evolution.csl
 ---
 
 ```{r echo=FALSE}
-knitr::read_chunk('scripts/2024_earwig_fecundity.R')
+knitr::read_chunk('scripts/earwig_tradeoff.R')
 ```
 
-```{r load_libraries, include=FALSE,echo=FALSE, warning=FALSE, results="hide"}
-```
-
-```{r load_data, echo=FALSE, warning=FALSE, results="hide", include=FALSE}
+```{r analysis, include=FALSE,echo=FALSE, warning=FALSE, results="hide"}
 ```
 
 \newpage
@@ -65,37 +62,13 @@ I tested the prediction that egg number and egg size trade off within females us
 
 I examined whether the first and second clutches of eggs differed in egg size variation among (*V*~among~) and within (*V*~within~) females by constructing a univariate hierarchical linear mixed-effects model with scaled mean egg perimeter as the response variable, clutch (first or second) as a fixed effect, and female body size as a continuous covariate. I also included, as random effects, a random slope for each clutch for each female. In the dispersion part of the model, I included clutch as a fixed effect to estimate the within-individual (i.e. residual) variance in egg size for each clutch. I then tested whether the first and second clutch differed in egg size at the among- and within-female levels.
 
-Bayesian mixed models were run for 10000 iterations (3000 warm-up iterations) across 6 chains, with a thinning interval of 2 (total post-warm-up samples = 21,000). I used weakly informative normal priors (N (0,10)) for fixed effects and positively bound exponential (1) priors for random effects in multivariate models. The univariate hierarchical mixed models were run using default priors. I performed posterior predictive checks to ensure adequate model fits, while trace plots confirmed that models converged with low among-chain variability (Rhat = 1.00). I report posterior means with 95% credible intervals (CrIs) for all parameter estimates, where inference was based on CrIs that did not include zero.
+Bayesian mixed models were run for 10000 iterations (3000 warm-up iterations) across 6 chains, with a thinning interval of 2 (total post-warm-up samples = 21,000). I used weakly informative normal priors (N (0,10)) for fixed effects and positively bound exponential (1) priors for random effects in multivariate models. The univariate hierarchical mixed models were run using default priors. I performed posterior predictive checks to ensure adequate model fits, while trace plots confirmed that models converged with low among-chain variability ($\hat{R}$ = 1.00). I report posterior means with 95% credible intervals (CrIs) for all parameter estimates, where inference was based on CrIs that did not include zero.
 
 
 # Results
-I did not support the prediction that egg number and egg size positively correlate either phenotypically (*r*~p~ [95% CrI] =  `r myround(pheno.corr.r[[1,1]],2)` [`r myround(pheno.corr.r[[1,2]],2)`, `r myround(pheno.corr.r[[1,3]],2)`]; @fig-one) or among females (*r*~among~ [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[9,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[9,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[9,9]],2)`]). Contrary to prediction, egg number and size were positively, rather than negatively, correlated at the within-individual level (*r*~within~ [95% CrI] = `r myround(res_cor[[1,1]],2)` [`r myround(res_cor[[1,2]],2)`, `r myround(res_cor[[1,3]],2)`]). 
 
-I found that second clutches ($\bar{x}$ = `r myround(earwig_egg_summary.3[[2,3]],2)` ± `r myround(earwig_egg_summary.3[[2,4]],2)` eggs, range: `r earwig_egg_summary.3[[2,5]]` - `r earwig_egg_summary.3[[2,6]]` eggs, n = `r earwig_egg_summary.3[[2,2]]` clutches) were, on average, smaller than first clutches ($\bar{x}$ = `r myround(earwig_egg_summary.3[[1,3]],2)` ± `r myround(earwig_egg_summary.3[[1,4]],2)` eggs, range: `r earwig_egg_summary.3[[1,5]]` - `r earwig_egg_summary.3[[1,6]]` eggs, n = `r earwig_egg_summary.3[[1,2]]` clutches; multivariate mixed model: Estimate [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[3,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[3,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[3,9]],2)`]). Similarly, egg size was smaller, on average, in second clutches ($\bar{x}$ = `r myround(earwig_egg_summary.3[[2,7]],2)` ± `r myround(earwig_egg_summary.3[[2,8]],2)` mm, range: `r myround(earwig_egg_summary.3[[2,9]],2)` - `r myround(earwig_egg_summary.3[[2,10]],2)` mm) versus first clutches ($\bar{x}$ = `r myround(earwig_egg_summary.3[[1,7]],2)` ± `r myround(earwig_egg_summary.3[[1,8]],2)` mm, range: `r myround(earwig_egg_summary.3[[1,9]],2)` - `r myround(earwig_egg_summary.3[[1,10]],2)` mm; Estimate [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[5,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[5,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[5,9]],2)`]). These findings suggest that larger clutches had, on average, larger eggs, which supports the aforementioned positive within-female correlation. Female pronotum length (body size) was not correlated with either clutch (Estimate [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[6,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[6,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[6,9]],2)`]) or egg (Estimate [95% CrI] = `r myround(tidy(trade_off.brms_cov.mass)[[4,6]],2)` [`r myround(tidy(trade_off.brms_cov.mass)[[4,8]],2)`, `r myround(tidy(trade_off.brms_cov.mass)[[4,9]],2)`]) size. Egg size exhibited significant among (V~a~ = `r myround(variance.among.size[1,1],2)` [`r myround(variance.among.size[1,2],2)`, `r myround(variance.among.size[1,3],2)`) and within (V~w~ = `r myround(variance.within.size[1,1],2)` [`r myround(variance.within.size[1,2],2)`, `r myround(variance.within.size[1,3],2)`) levels of variation and was also significantly repeatable across female clutches (*R* [95% CI] = `r myround(rep.size[1,1],2)` [`r myround(rep.size[1,2],2)`, `r myround(rep.size[1,3],2)`). Similalry, egg number exhibited significant among (V~a~ = `r myround(variance.among.num[1,1],2)` [`r myround(variance.among.num[1,2],2)`, `r myround(variance.among.num[1,3],2)`) and within (V~w~ = `r myround(variance.within.num[1,1],2)` [`r myround(variance.within.num[1,2],2)`, `r myround(variance.within.num[1,3],2)`) levels of variation and was also significantly repeatable across female clutches (*R* = `r myround(rep.num[1,1],2)` [`r myround(rep.num[1,2],)`, `r myround(rep.num[1,3],2)`]).
+Both egg number and egg size declined in the second clutch In the multivariate Gaussian–Poisson model, egg size was smaller in clutch two relative to clutch one ($\beta$ = `r myround(m_mv_2.sum[3,5],2)`, 95% CrI (`r myround(m_mv_2.sum[3,7],2)`, `r myround(m_mv_2.sum[3,8],2)`). Egg number also declined significantly (log-scale β = $\beta$ = `r myround(m_mv_2.sum[4,5],2)`, 95% CrI (`r myround(m_mv_2.sum[4,7],2)`, `r myround(m_mv_2.sum[4,8],2)`), corresponding to an approximate 34% reduction on the natural scale ($e^{`r myround(m_mv_2.sum[4,5],3`)} \approx `r round(exp(-0.412), 2)`$). Among-female variation remained detectable for both egg size (SD = 0.091, 95% CrI [0.009, 0.165]) and egg number (SD = 0.355, 95% CrI [0.273, 0.460]), indicating persistent heterogeneity across broods.
 
-```{r include=FALSE,echo=FALSE, warning=FALSE, results="hide"}
-brood.one <- earwig_egg_summary.2 %>%
-  filter(brood=="one")
-brood.one.r <- cor.test(brood.one$sd.egg, brood.one$num, method = "spearman")
-brood.two <- earwig_egg_summary.2 %>%
-  filter(brood=="two")
-brood.two.r <- cor.test(brood.two$sd.egg, brood.two$num, method= "spearman")
-```
-
-```{r include=FALSE,echo=FALSE, warning=FALSE, results="hide"}
-egg.num.range.1 <- earwig_egg_summary.2 %>%
-  filter(brood=="one") %>%
-  ungroup() %>%
-  summarise(min.1=min(num), max.1=max(num))
-
-egg.num.range.2 <- earwig_egg_summary.2 %>%
-  filter(brood=="two") %>%
-  ungroup() %>%
-  summarise(min.2=min(num), max.2=max(num))
-```
-
-
-There was no difference in egg size variation between first (egg number range: `r egg.num.range.1[[1]]`-`r egg.num.range.1[[2]]`) and second (egg number range: `r egg.num.range.2[[1]]`-`r egg.num.range.2[[2]]`)clutches among females ($\Delta$*V*~among~ [95% CrI] = `r myround(brood.va.delta[1,2],2)` [`r myround(brood.va.delta[[1,3]],2)`, `r myround(brood.va.delta[[1,4]],2)`]; @fig-two) but within-clutch egg size variation was smaller in first than in second clutches  ($\Delta$*V*~within~ [95% CrI] = `r myround(brood.vw.delta[1,2],2)` [`r myround(brood.vw.delta[[1,3]],2)`, `r myround(brood.vw.delta[[1,4]],2)`]; @fig-two). Within-clutch egg size variation (i.e. standard deviation of egg size per clutch) was related to clutch size in first ($\rho$ = `r myround(brood.one.r$estimate,2)`, `r pvalue(brood.one.r$p.value,accuracy = 0.001, add_p=TRUE)`) but not in second ($\rho$ = `r myround(brood.two.r$estimate,2)`, `r pvalue(brood.two.r$p.value,accuracy = 0.001, add_p=TRUE)`) clutches.
 
 # Discussion
 My multivariate repeated-measures analysis of clutch and egg size found no evidence that female European earwigs trade off egg number and egg size. Despite failing to support general life history theory [@roff1992a; @stearns1992] and contradicting the results of a previous study in this species [@koch2014], it is the first, to my knowledge, to partition the phenotypic correlation between egg number and size into its among- and within-individual components. Although many studies have supported the prediction that egg number and size trade off, some have not [@roff1992a; @fox2000]. Because these previous studies relied on phenotypic correlations to examine the relationship between egg number and size, it is not possible to assess the extent to which this prediction is empirically supported across taxa, given the propensity for phenotypic correlations to generate spurious and misleading associations. For example, Koch and Meunier [-@koch2014] showed that, in an Italian population of *F. auricularia*, residual egg number and residual egg size (adjusted for female body mass) are negatively correlated at the phenotypic level. However, these findings must be treated with caution; they are based on pseudo-replicated data (both clutches for each female were pooled and treated as independent), a situation that can lead to Simpson’s Paradox [@simpson1951] and spurious correlations because within-individual relationships are masked by among-individual variation.  Indeed, I also observed a negative, albeit weaker, correlation at the phenotypic level. However, by partitioning the variance into its among- and within-individual components, I found that females do not make the predicted trade-off. Rather, I found evidence that egg number and size are positively correlated within females. 

@@ -1,0 +1,75 @@
+---
+title: "Supplemental Material: Residual correlation shows that European earwigs do not trade off clutch and egg size."
+authors:
+  - name: Clint D. Kelly
+    affiliations:
+      - ref: cdk
+    corresponding: true
+    email: kelly.clint@uqam.ca
+    orcid: 0000-0002-0693-7211
+    
+affiliations:
+  - id: cdk
+    name: Département des Sciences biologiques, Université du Québec à Montréal, Montréal, Canada
+
+filters:
+  - authors-block
+  - iagopinal/figure-table-formatter
+
+crossref:
+  tbl-title: Table S
+  fig-title: Figure S
+
+format:
+  docx:
+    toc: false
+    reference-doc: word-style-template.docx
+bibliography: Bibliography.bib
+csl: evolution.csl
+---
+
+```{r echo=FALSE}
+knitr::read_chunk('scripts/earwig_tradeoff.R')
+```
+
+```{r analysis, include=FALSE,echo=FALSE, warning=FALSE, results="hide"}
+```
+
+\newpage
+
+```{r}
+#| echo: false
+#| results: asis
+block_section(
+  prop_section(
+    page_size = page_size(orient = "portrait"),
+    type = "continuous"
+  )
+)
+```
+
+\newpage
+
+```{r}
+#| echo: false
+#| results: asis
+#| warning: FALSE
+#| label: tbl-one
+#| tbl-cap: Bayesian multivariate mixed-effects model output for effect of pronotum length and clutch number on clutch size and egg size in European earwigs (*Forficula auricularia*).
+
+summary(fit.null, prob=0.95) 
+```
+
+\newpage
+
+```{r}
+#| echo: false
+#| results: asis
+#| warning: FALSE
+#| label: tbl-two
+#| tbl-cap: Comparison of Bayesian multivariate mixed-effects models having different measures of body size (pronotum length, body mass, scaled mass index, PC1) or no covariate (null). Models were compared by estimating their out-of-sample predictive performance using Approximate Leave-One-Out Cross-Validation (LOO-CV) and then ranked based on their Expected Log Predictive Density (ELPD).
+
+model.comparison.report
+```
+
+\newpage
