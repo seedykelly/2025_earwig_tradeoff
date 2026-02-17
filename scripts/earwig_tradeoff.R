@@ -474,8 +474,30 @@ model.comparison <- readRDS(file = "data/processed/model.comparison.rds")
 
 # model.comparison.report <-report(model.comparison) # fit.null is best model
 # saveRDS(model.comparison.report, file = "data/processed/model.comparison.report.rds")
-fit.null <- readRDS(file = "data/processed/fit.null.rds")
 model.comparison.report <- readRDS(file = "data/processed/model.comparison.report.rds")
+
+ran_int <- posterior_summary(fit.null, variable = "sd_id__Intercept")
+
+# allow within-female slopes to vary
+# fit.null.slopes <- brm(
+#   mean.egg.size ~
+#     egg_number_within +
+#     egg_number_between +
+#     (1 + egg_number_within | id),
+#   data = df,
+#   family = gaussian(),
+#   prior = priors,
+#   control = list(adapt_delta = 0.999),
+#   save_pars = save_pars(all = TRUE),
+#   file = "data/processed/fit.null.slopes",
+#   backend = "cmdstanr",
+#   chains = 4, cores = 4, iter = 4000
+# )
+# print(summary(fit.null.slopes), digits = 4)
+fit.null.slopes <- readRDS(file = "data/processed/fit.null.slopes.rds")
+
+ran_int.slopes <- posterior_summary(fit.null.slopes, variable = "sd_id__egg_number_within")
+ran_int.slopes.cor <- posterior_summary(fit.null.slopes, variable = "cor_id__Intercept__egg_number_within")
 
 # =========================================
 # Standardized effects
@@ -519,8 +541,12 @@ m_wb_brood <- brm(
   file = "data/processed/m_wb_brood",
   iter = 4000, warmup = 1000
 )
-fixef(m_wb_brood)
-fixef(m_wb_brood)["egg_number_within", ]
+print(summary(m_wb_brood), digits = 4)
+
+clutch_order_within <- fixef(m_wb_brood)["egg_number_within", ]
+
+m_wb_brood <- readRDS(file = "data/processed/m_wb_brood.rds")
+
 
 #### Random slopes model ####
 
