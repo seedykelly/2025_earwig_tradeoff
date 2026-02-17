@@ -183,33 +183,33 @@ summary.stat <- df %>%
 
 # =========================================
 # Effect of brood number
-# =========================================
+# # =========================================
 # priors_mv2 <- c(
-#   
+# 
 #   # Gaussian response: mean.egg.size
-#   
+# 
 #   # Intercept
 #   prior(normal(0, 5), class = "Intercept", resp = "meaneggsize"),
-#   
+# 
 #   # Brood effect
 #   prior(normal(0, 2), class = "b", resp = "meaneggsize"),
-#   
+# 
 #   # Random intercept SD
 #   prior(student_t(3, 0, 2.5), class = "sd", resp = "meaneggsize"),
-#   
+# 
 #   # Residual SD
 #   prior(student_t(3, 0, 2.5), class = "sigma", resp = "meaneggsize"),
-#   
-#   
+# 
+# 
 #   # Poisson response: egg.number
 #   # (log link scale!)
-#   
+# 
 #   # Intercept (on log scale)
 #   prior(normal(2, 1.5), class = "Intercept", resp = "eggnumber"),
-#   
+# 
 #   # Brood effect (log scale)
 #   prior(normal(0, 0.5), class = "b", resp = "eggnumber"),
-#   
+# 
 #   # Random intercept SD (log scale)
 #   prior(student_t(3, 0, 1), class = "sd", resp = "eggnumber")
 # )
@@ -379,8 +379,8 @@ cat("Between-female correlation (r_between) = ", round(r_between, 3),
 # =========================================
 
 # priors <- c(
-#   prior(normal(0, 0.01), class = "b", coef = "egg_number_within"),
-#   prior(normal(0, 0.01), class = "b", coef = "egg_number_between"),
+#   prior(normal(0, 1), class = "b", coef = "egg_number_within"),
+#   prior(normal(0, 1), class = "b", coef = "egg_number_between"),
 #   prior(normal(0, 1), class = "Intercept"),
 #   prior(exponential(1), class = "sd"),
 #   prior(exponential(1), class = "sigma")

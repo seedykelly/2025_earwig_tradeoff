@@ -18,6 +18,7 @@ filters:
 crossref:
   fig-prefix: Figure   # (default is "Figure")
   tbl-prefix: Table    # (default is "Table")
+  eq-prefix: "Equation"
 
 format:
   docx:
@@ -54,14 +55,9 @@ Females were checked daily for oviposition. When a female laid eggs, I recorded 
 To stimulate females to lay a second clutch of eggs, I recreated a brief period of spring where they were allowed to accumulate resources for egg production and replenish their sperm stores. To achieve this, females that had recently oviposited were placed in a new Petri dish containing a cotton-plugged water vial, TetraMin Tropical fish flakes, and a shelter consisting of four 4 cm-long pieces of paper straw  (Blowholes, Markham, Canada) glued together. These Petri dishes were placed in a 23 °C incubator with a 12L:12D light: dark cycle. Females were maintained under these conditions for two weeks, at which time a haphazardly chosen stock male from our colony was placed with her. The pair was kept together for a week, after which a new stock male replaced the original male, and that pair was kept together for another week. Females were then transferred to the 10 °C incubator and treated as previously until they laid their second clutch, at which point their eggs were photographed. Females were euthanised by freezing after laying their second clutch, and their pronotum was photographed as described above. Females were then weighed to the nearest 0.01 mg using a Sartorius Secura 224-1S analytical balance. Females were weighed three times, with each weighing bout separated by four days. I used Fiji image analysis software [@schindelin2012] to measure the length of the female pronotum and the perimeter of each egg to the nearest 0.001 mm. Both traits were measured three times, with each measurement separated by 4 days.
 
 ### Statistical analysis
-I calculated the repeatability of the body mass, pronotum length and egg perimeter measurements using the R package *rptR* [@stoffel2017]. I entered the trait of interest as the response variable, female ID as a random effect, and assumed a Gaussian distribution. Each analysis was based on 1000 bootstrap samples. Because the measurements of my three traits were highly repeatable (pronotum length: *R* [95% CI] = `r myround(rep1$R, 2)` [`r myround(rep1$CI_emp[1,1],2)`, `r myround(rep1$CI_emp[1,2],2)`]; body mass: *R* [95% CI] = `r myround(rep2$R, 2)` [`r myround(rep2$CI_emp[1,1],3)`, `r myround(rep2$CI_emp[1,2],3)`] egg perimeter in the first brood: *R* [95% CI] = `r myround(rep3$R,3)` [`r myround(rep3$CI_emp[1,1],3)`, `r myround(rep3$CI_emp[1,2],3)`] and in the second brood: *R* [95% CI] = `r myround(rep4$R, 2)` [`r myround(rep4$CI_emp[1,1],3)`, `r myround(rep4$CI_emp[1,2],3)`] ), I used each female’s mean value for each trait in all subsequent analyses.
+I calculated the repeatability of the body mass, pronotum length and egg perimeter measurements using the R package *rptR* [@stoffel2017]. I entered the trait of interest as the response variable, female ID as a random effect, and assumed a Gaussian distribution. Each analysis was based on 1000 bootstrap samples. The measurements of my two morphological traits were highly repeatable (pronotum length: *R* [95% CI] = `r myround(rep1$R, 2)` [`r myround(rep1$CI_emp[1,1],2)`, `r myround(rep1$CI_emp[1,2],2)`]; body mass: *R* [95% CI] = `r myround(rep2$R, 2)` [`r myround(rep2$CI_emp[1,1],3)`, `r myround(rep2$CI_emp[1,2],3)`]); therefore, I used each female’s mean value for each trait where necessary. Because egg perimeter was highly repeatable in both clutches (first clutch: *R* [95% CI] = `r myround(rep3$R,3)` [`r myround(rep3$CI_emp[1,1],3)`, `r myround(rep3$CI_emp[1,2],3)`]; second clutch: *R* [95% CI] = `r myround(rep4$R, 2)` [`r myround(rep4$CI_emp[1,1],3)`, `r myround(rep4$CI_emp[1,2],3)`] ), I calculated each egg's average perimeter and then used these values to calculate the mean egg size for each clutch for each female. I reduced the two measurements representing body size (pronotum length and body mass) to a single value (PC1)  by performing a principal components analysis (PCA) on the correlation matrix of standardized measurements using the *prcomp* function in the R *stats* package [@r2013]. The first PC accounted for 60.8% of the variation. I also standardised female body mass relative to structural body size (i.e. pronotum length) using the scaled mass index procedure of Peig and Green [-@peig2009; -@peig2010; see also @kelly2014].
 
-I reduced the two measurements representing body size (pronotum length and body mass) to a single value (PC1)  by performing a principal components analysis (PCA) on the correlation matrix of standardized measurements using the *prcomp* function in the stats package in R [@r2013]. The first PC accounted for 60.8% of the variation. I also standardised female body mass relative to body size using the scaled mass index procedure of Peig and Green [-@peig2009; -@peig2010; see also @kelly2014].
-
-I tested whether egg number and egg size changed across successive broods by fitting a multivariate Bayesian mixed-effects model including clutch order (first vs. second clutch) as a fixed effect for both traits. Egg size was modelled using a Gaussian distribution with an identity link, whereas egg number was modelled using a Poisson distribution with a log link.
-For female *i* and brood *j*, the model was specified as:
-
-## Multivariate Clutch-Order Model
+I tested whether egg number and egg size changed across successive clutches by fitting a multivariate Bayesian mixed-effects model including clutch order (first vs. second clutch) as a fixed effect for both traits. Egg size was modelled using a Gaussian distribution with an identity link, whereas egg number was modelled using a Poisson distribution with a log link.
 
 For female $i$ and clutch $j$, mean egg size and egg number were modelled jointly as:
 
@@ -95,19 +91,11 @@ b_{2,i}
 \Sigma_b
 \right)
 \end{aligned}
-$$
+$$ {#eq-clutchorder}
 
 where $b_{1,i}$ and $b_{2,i}$ are female-specific random intercepts and $\Sigma_b$ is the female-level variance–covariance matrix. Residual correlations between traits were not estimated (`set_rescor(FALSE)`). Female identity was included as a random effect for both traits to account for repeated measures. This model tested whether egg traits systematically differed between first and second clutches while accounting for among-female variation.
 
-## Multilevel correlations
-### Raw phenotypic correlation
-I first calculated the raw phenotypic association between egg number and egg size across all observations using Pearson’s correlation coefficient (*r*). This estimate reflects the overall linear association between traits without accounting for repeated measures or hierarchical structure.
-
-### Between-female correlation
-To quantify among-female covariation, I calculated the Pearson correlation between female mean egg number and female mean egg size. Female means were calculated across broods. This approach isolates between-female covariance independent of within-female variation.
-
-### Partitioning among- and residual covariance
-To formally partition covariance into among-female and residual components, I fitted a multivariate Gaussian mixed-effects model:
+I first calculated the raw phenotypic association between egg number and egg size across all observations using Pearson’s correlation coefficient (*r*). This estimate reflects the overall linear association between traits without accounting for repeated measures or hierarchical structure. To quantify among-female covariation, I calculated the Pearson correlation between female mean egg number and female mean egg size. Female means were calculated across broods. This approach isolates between-female covariance independent of within-female variation. To formally partition covariance into among-female and residual components, I fitted a multivariate Gaussian mixed-effects model:
 
 $$
 \begin{aligned}
@@ -117,7 +105,7 @@ $$
 \text{EggNumber}_{ij} &= 
 \beta_{2,0} + b_{2,i} + \varepsilon_{2,ij}
 \end{aligned}
-$$
+$${#eq-residual}
 
 with random effects and residuals distributed as:
 
@@ -153,9 +141,7 @@ $$
 
 The covariance matrix $\Sigma_b$ captures among-female covariance, whereas $\Sigma_{\varepsilon}$ estimates residual (within-female) covariance after accounting for female identity (`set_rescor(TRUE)`).
 
-## Within–Between Fixed Effects Model
-
-To explicitly separate within- and between-female effects of egg number on egg size, egg number was decomposed as:
+In addition to calculating correlations between egg number and size at multiple levels, I also explicitly separated within- and between-female effects of egg number on egg size following van de Pol & Wright [-@vandepol2009] by decomposing egg number as:
 
 1. Within-female deviation
 
@@ -165,7 +151,7 @@ $$
 \text{EggNumber}_{ij}
 -
 \bar{\text{EggNumber}}_{i}
-$$
+$${#eq-within}
 
 2.  Between-female component
 
@@ -175,7 +161,7 @@ $$
 \bar{\text{EggNumber}}_{i}
 -
 \bar{\text{EggNumber}}
-$$
+$${#eq-between}
 
 I then fitted the following linear mixed-effects model:
 
@@ -191,7 +177,7 @@ $$
 b_{0i}
 +
 \varepsilon_{ij}
-$$
+$${#eq-withinbetween}
 
 with
 
@@ -207,7 +193,7 @@ To facilitate comparison of effect sizes, continuous predictors were standardize
 
 $$
 X_{\text{std}} = \frac{X - \bar{X}}{\mathrm{SD}(X)}
-$$
+$${#eq-standardization}
 
 The within-female and between-female components were standardized across their respective distributions. When estimating standardized regression coefficients, the response variable was also scaled to unit standard deviation. Standardized coefficients therefore represent the expected change (in standard deviation units) in egg size per one standard deviation change in the predictor.
 
@@ -220,10 +206,22 @@ $$
 \beta_B \,\text{egg\_number}_{\text{between},i} +
 (1 + \text{egg\_number}_{\text{within}} \mid \text{id}) +
 \varepsilon_{ij}
-$$
+$${#eq-randomslopes}
 
 This model estimates variance in within-female slopes as well as the intercept–slope correlation, thereby quantifying heterogeneity in allocation strategies. Specifically, it allows assessment of whether females with larger average egg size differ systematically in the strength or direction of their within-female trade-off. This model was used to quantify individual variation in slopes but not to derive standardized fixed effects.
 
+Because both egg number and egg size varied systematically across clutches, we tested whether clutch order explained the within-female association by including clutch as a fixed effect in the within–between model:
+
+$$
+\text{mean egg size}_{ij} =
+\beta_0 +
+\beta_W \,\text{egg\_number}_{\text{within},ij} +
+\beta_B \,\text{egg\_number}_{\text{between},i} +
+\beta_{\text{brood}} \,\text{brood}_{ij} +
+b_{0i} +
+\varepsilon_{ij}
+$${#eq-clutchorderwithinbetween}
+This model evaluates whether the within-female slope persists after accounting for systematic clutch-related shifts in reproductive output. A reduction of $\beta_W$ toward zero indicates that any apparent within-female association was driven by parallel clutch-order changes rather than plastic allocation per se.
 
 Weakly informative priors were specified for all model parameters to regularize estimation while remaining minimally restrictive. All models were fitted using Markov chain Monte Carlo (MCMC) sampling with four independent chains and 4,000 iterations to ensure adequate posterior exploration. Convergence was evaluated using the potential scale reduction factor ($\hat{R}$ = 1.00), effective sample sizes (bulk and tail ESS), and visual inspection of trace plots. All reported parameters satisfied standard convergence criteria ($\hat{R} \approx 1.00$). Parameter estimates are presented as posterior means with 95% credible intervals derived from the posterior distributions. Inference was based on CrIs that did not include zero.
 
@@ -233,6 +231,7 @@ I examined whether the first and second clutches of eggs differed in egg size va
 
 
 # Results
+Equation @eq-clutchorder
 
 Results
 Effect of clutch order on egg size and number
