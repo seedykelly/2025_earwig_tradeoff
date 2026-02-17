@@ -57,7 +57,7 @@ block_section(
 #| label: tbl-one
 #| tbl-cap: Bayesian multivariate mixed-effects model output for effect of pronotum length and clutch number on clutch size and egg size in European earwigs (*Forficula auricularia*).
 
-summary(fit.null, prob=0.95) 
+fit.null 
 ```
 
 \newpage
