@@ -394,11 +394,10 @@ cat("Between-female correlation (r_between) = ", round(r_between, 3),
 #   data = df,
 #   family = gaussian(),
 #   prior = priors,
-#   control = list(adapt_delta = 0.999),
 #   save_pars = save_pars(all = TRUE),
-#   file = "data/processed/fit.null",
+#   file = "data/processed/fit.null7",
 #   backend = "cmdstanr",
-#   chains = 4, cores = 4, iter = 4000
+#   chains = 4, cores = 4, thin = 6, iter = 4000
 # )
 # print(summary(fit.null), digits = 4)
 # fit.null <- add_criterion(fit.null, "loo", moment_match=TRUE) # best model
@@ -478,27 +477,6 @@ model.comparison.report <- readRDS(file = "data/processed/model.comparison.repor
 
 ran_int <- posterior_summary(fit.null, variable = "sd_id__Intercept")
 
-# allow within-female slopes to vary
-# fit.null.slopes <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between +
-#     (1 + egg_number_within | id),
-#   data = df,
-#   family = gaussian(),
-#   prior = priors,
-#   control = list(adapt_delta = 0.999),
-#   save_pars = save_pars(all = TRUE),
-#   file = "data/processed/fit.null.slopes",
-#   backend = "cmdstanr",
-#   chains = 4, cores = 4, iter = 4000
-# )
-# print(summary(fit.null.slopes), digits = 4)
-fit.null.slopes <- readRDS(file = "data/processed/fit.null.slopes.rds")
-
-ran_int.slopes <- posterior_summary(fit.null.slopes, variable = "sd_id__egg_number_within")
-ran_int.slopes.cor <- posterior_summary(fit.null.slopes, variable = "cor_id__Intercept__egg_number_within")
-
 # =========================================
 # Standardized effects
 # =========================================
@@ -528,49 +506,55 @@ std_effects_table <- data.frame(
 # Brood adjusted slope
 # =========================================
 
-m_wb_brood <- brm(
-  mean.egg.size ~ 
-    egg_number_within +
-    egg_number_between +
-    brood +
-    (1 | id),
-  data = df,
-  family = gaussian(),
-  backend = "cmdstanr",
-  chains = 4, cores = 4,
-  file = "data/processed/m_wb_brood",
-  iter = 4000, warmup = 1000
-)
-print(summary(m_wb_brood), digits = 4)
-
-clutch_order_within <- fixef(m_wb_brood)["egg_number_within", ]
+# m_wb_brood <- brm(
+#   mean.egg.size ~ 
+#     egg_number_within +
+#     egg_number_between +
+#     brood +
+#     (1 | id),
+#   data = df,
+#   family = gaussian(),
+#   backend = "cmdstanr",
+#   chains = 4, cores = 4,
+#   file = "data/processed/m_wb_brood",
+#   iter = 4000, warmup = 1000
+# )
+# print(summary(m_wb_brood), digits = 4)
 
 m_wb_brood <- readRDS(file = "data/processed/m_wb_brood.rds")
 
+clutch_order_within <- brms::fixef(m_wb_brood)["egg_number_within", ]
 
-#### Random slopes model ####
+# =========================================
+# Random slopes model
+# =========================================
+# m_rs <- brm(
+#   mean.egg.size ~ 
+#     egg_number_within + 
+#     egg_number_between +
+#     (1 + egg_number_within | id),
+#   data = df,
+#   family = gaussian(),
+#   prior = c(
+#     prior(normal(0, 0.5), class = "b"),
+#     prior(normal(0, 1), class = "Intercept"),
+#     prior(exponential(1), class = "sd"),
+#     prior(lkj(2), class = "cor")
+#   ),
+#   chains = 4,
+#   cores = 4,
+#   iter = 5000,
+#   control = list(adapt_delta = 0.99),
+#   file = "data/processed/m_rs",
+#   
+# )
+# print(summary(m_rs), digits = 4)
 
-m_rs <- brm(
-  mean.egg.size ~ 
-    egg_number_within + 
-    egg_number_between +
-    (1 + egg_number_within | id),
-  data = df,
-  family = gaussian(),
-  prior = c(
-    prior(normal(0, 0.5), class = "b"),
-    prior(normal(0, 1), class = "Intercept"),
-    prior(exponential(1), class = "sd"),
-    prior(lkj(2), class = "cor")
-  ),
-  chains = 4,
-  cores = 4,
-  iter = 5000,
-  control = list(adapt_delta = 0.99),
-  file = "data/processed/m_rs",
-  
-)
-print(summary(m_rs), digits = 4)
+m_rs <- readRDS(file = "data/processed/m_rs.rds")
+
+ran_int.slopes <- posterior_summary(m_rs, variable = "sd_id__egg_number_within")
+ran_int.slopes.cor <- posterior_summary(m_rs, variable = "cor_id__Intercept__egg_number_within")
+
 
 # # Convert brms model to draws_df
 # post <- as_draws_df(m_rs)
