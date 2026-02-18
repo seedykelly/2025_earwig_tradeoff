@@ -672,8 +672,6 @@ earwig_egg_3 <- earwig_egg_2 %>%
 # 95% CI = [0.20, 0.87]
 # Posterior probability > 0 = 1.00
 
-
-
 # alternative model
  
 egg.size.bf.alt <- bf(
@@ -763,17 +761,16 @@ mean(diff_within > 0)
 # Posterior probability > 0 = 1.00
 
 # repeatability per brood
-R_B1 <- var_B1 / (var_B1 + var_within_B1)
+R_B1 <- var_B1_alt / (var_B1_alt + var_within_B1)
 quantile(R_B1, c(.025,.5,.975))
 
-R_B2 <- var_B2 / (var_B2 + var_within_B2)
+R_B2 <- var_B2_alt / (var_B2_alt + var_within_B2)
 quantile(R_B2, c(.025,.5,.975))
 
 post_alt$cor_id__brood_factorone__brood_factortwo
-quantile(post_alt$cor_id__brood_factorone__brood_factortwo
-, c(.025,.5,.975))
+quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 
-loo(egg.size.model, egg.size.model.alt)
+#loo(egg.size.model, egg.size.model.alt)
 
 #==========================================
 
@@ -936,10 +933,50 @@ df_plot <- tibble(
                names_to = "component",
                values_to = "variance")
 
-ggplot(df_plot, aes(x = variance, fill = component)) +
-  geom_density(alpha = 0.5) +
-  theme_classic() +
-  labs(x = "Variance", y = "Posterior density")
+# Combine posterior draws
+df_between <- tibble(
+  brood = rep(c("first", "second"),
+              each = length(var_B1_alt)),
+  variance = c(var_B1_alt, var_B2_alt),
+  type = "Between-female egg size variation"
+)
+
+df_within <- tibble(
+  brood = rep(c("first", "second"),
+              each = length(var_within_B1)),
+  variance = c(var_within_B1, var_within_B2),
+  type = "Within-clutch egg size variation"
+)
+
+df_plot <- bind_rows(df_between, df_within)
+
+p_variance <- ggplot(df_plot, aes(x = brood, y = variance)) +
+  
+  # posterior draws as semi-transparent dots
+  stat_dotsinterval(slab_fill="darkgrey", slab_color="darkgrey", point_interval = median_qi,
+                    .width = 0.95, quantiles=100) +
+  
+  # median + 95% credible interval
+  stat_summary(fun.data = median_qi,
+               fun.args = list(.width = 0.95),
+               geom = "pointrange",
+               color = "black",
+               size = 0.8) +
+  
+  facet_wrap(~ type, scales = "free_y") +
+  
+  labs(x = "Clutch laying order",
+       y = NULL) +
+  
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        strip.background = element_rect(fill="white"),
+        axis.title.x = element_text(size=14,face="bold"),
+        axis.title.y = element_text(size=14,face="bold"),
+        axis.text.x = element_text(size=12),
+        axis.text.y = element_text(size=12))
+ggsave(p_variance, filename="figure_4.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+
 
 
 ## ---- end
