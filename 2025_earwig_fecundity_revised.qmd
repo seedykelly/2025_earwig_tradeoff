@@ -59,159 +59,15 @@ I calculated the repeatability of the body mass, pronotum length and egg perimet
 
 The following analyses were conducted in a Bayesian framework using the *brms* package [@burkner2017] in R.
 
-I tested whether egg number and egg size changed across successive clutches by fitting a multivariate Bayesian mixed-effects model including clutch order (first vs. second clutch) as a fixed effect for both traits. Egg size was modelled using a Gaussian distribution with an identity link, whereas egg number was modelled using a Poisson distribution with a log link.
+I tested whether egg number and egg size changed across successive clutches by fitting a multivariate Bayesian mixed-effects model that included clutch order (first vs. second clutch) as a fixed effect for both traits. Mean egg size was analysed assuming a Gaussian error distribution with an identity link, whereas egg number was analysed using a Poisson error distribution with a log link.
+The two traits were modelled jointly to account for potential covariance at the female level. For each trait, the model included a fixed intercept and an effect of clutch order. Female identity was included as a random intercept for both egg size and egg number to account for repeated measures across clutches. The female-specific random intercepts for the two traits were allowed to covary, thereby estimating the among-female variance–covariance structure between egg size and egg number.
+Residual correlations between traits were not estimated (set_rescor(FALSE)), such that covariance between traits was modelled only at the female level. This model therefore tested whether egg size and egg number differed systematically between first and second clutches while accounting for repeated measures and among-female variation in both traits.
 
-For female $i$ and clutch $j$, mean egg size and egg number were modelled jointly as:
+I calculated the raw phenotypic association between egg number and egg size across all observations using Pearson’s correlation coefficient (*r*). This estimate reflects the overall linear association between traits without accounting for repeated measures or hierarchical structure. To quantify among-female covariation, I calculated the Pearson correlation between female mean egg number and female mean egg size. Female means were calculated across broods. This approach isolates between-female covariance independent of within-female variation. To partition covariance into among-female and residual components, I fitted a multivariate mixed-effects model treating egg size and egg number as Gaussian responses. Female identity was included as a random intercept for both traits, and residual correlations were estimated (`set_rescor(TRUE)`). This allowed covariance between traits to be decomposed into an among-female component, reflecting consistent differences among individuals, and a residual component, reflecting clutch-level associations within females. Female-specific random intercepts for egg size and egg number were allowed to correlate, providing an estimate of the among-female correlation. Residual errors were also allowed to correlate, yielding an estimate of the within-female (residual) association between traits. To further distinguish plastic from strategic effects, I followed van de Pol and Wright (2009) by decomposing egg number into a within-female component (deviation from a female’s own mean) and a between-female component (a female’s mean relative to the population mean). I then fitted a linear mixed-effects model with mean egg size as the response, including both components as fixed effects and female identity as a random intercept. The within-female coefficient estimates the plastic effect of egg number on egg size, whereas the between-female coefficient estimates the among-female (strategic) association.
 
-$$
-\begin{aligned}
-\text{MeanEggSize}_{ij} &\sim \mathcal{N}(\mu_{1,ij}, \sigma_1^2) \\
-\mu_{1,ij} &= 
-\beta_{1,0}
-+ \beta_{1,\text{brood}} \, \text{Brood}_{ij}
-+ b_{1,i}
-\\
-\\
-\text{EggNumber}_{ij} &\sim \text{Poisson}(\lambda_{ij}) \\
-\log(\lambda_{ij}) &=
-\beta_{2,0}
-+ \beta_{2,\text{brood}} \, \text{Brood}_{ij}
-+ b_{2,i}
-\\
-\\
-\begin{pmatrix}
-b_{1,i} \\
-b_{2,i}
-\end{pmatrix}
-&\sim
-\mathcal{N}
-\left(
-\begin{pmatrix}
-0 \\
-0
-\end{pmatrix},
-\Sigma_b
-\right)
-\end{aligned}
-$$ {#eq-clutchorder}
+To facilitate comparison of effect sizes, continuous predictors were standardized by centering them on their mean and scaling them by their standard deviation. In other words, each value was expressed relative to how far it deviated from the average, measured in units of standard deviations. The within-female and between-female components were each standardized using the mean and standard deviation of their respective distributions. When estimating standardized regression coefficients, the response variable was also scaled to have a standard deviation of one. As a result, standardized coefficients represent the expected change in egg size (measured in standard deviation units) associated with a one standard deviation change in the predictor.
 
-where $b_{1,i}$ and $b_{2,i}$ are female-specific random intercepts and $\Sigma_b$ is the female-level variance–covariance matrix. Residual correlations between traits were not estimated (`set_rescor(FALSE)`). Female identity was included as a random effect for both traits to account for repeated measures. This model tested whether egg traits systematically differed between first and second clutches while accounting for among-female variation.
-
-I first calculated the raw phenotypic association between egg number and egg size across all observations using Pearson’s correlation coefficient (*r*). This estimate reflects the overall linear association between traits without accounting for repeated measures or hierarchical structure. To quantify among-female covariation, I calculated the Pearson correlation between female mean egg number and female mean egg size. Female means were calculated across broods. This approach isolates between-female covariance independent of within-female variation. To formally partition covariance into among-female and residual components, I fitted a multivariate Gaussian mixed-effects model:
-
-$$
-\begin{aligned}
-\text{MeanEggSize}_{ij} &= 
-\beta_{1,0} + b_{1,i} + \varepsilon_{1,ij} \\
-\\
-\text{EggNumber}_{ij} &= 
-\beta_{2,0} + b_{2,i} + \varepsilon_{2,ij}
-\end{aligned}
-$${#eq-residual}
-
-with random effects and residuals distributed as:
-
-$$
-\begin{pmatrix}
-b_{1,i} \\
-b_{2,i}
-\end{pmatrix}
-\sim
-\mathcal{MVN}
-\left(
-\begin{pmatrix}
-0 \\
-0
-\end{pmatrix},
-\Sigma_b
-\right),
-\qquad
-\begin{pmatrix}
-\varepsilon_{1,ij} \\
-\varepsilon_{2,ij}
-\end{pmatrix}
-\sim
-\mathcal{MVN}
-\left(
-\begin{pmatrix}
-0 \\
-0
-\end{pmatrix},
-\Sigma_{\varepsilon}
-\right)
-$$
-
-The covariance matrix $\Sigma_b$ captures among-female covariance, whereas $\Sigma_{\varepsilon}$ estimates residual (within-female) covariance after accounting for female identity (`set_rescor(TRUE)`).
-
-In addition to calculating correlations between egg number and size at multiple levels, I also explicitly separated within- and between-female effects of egg number on egg size following van de Pol & Wright [-@vandepol2009] by decomposing egg number as:
-
-1. Within-female deviation
-
-$$
-\text{EggNumber}_{\text{within},ij}
-=
-\text{EggNumber}_{ij}
--
-\bar{\text{EggNumber}}_{i}
-$${#eq-within}
-
-2.  Between-female component
-
-$$
-\text{EggNumber}_{\text{between},i}
-=
-\bar{\text{EggNumber}}_{i}
--
-\bar{\text{EggNumber}}
-$${#eq-between}
-
-I then fitted the following linear mixed-effects model:
-
-$$
-\text{MeanEggSize}_{ij}
-=
-\beta_{0}
-+
-\beta_{W} \, \text{EggNumber}_{\text{within},ij}
-+
-\beta_{B} \, \text{EggNumber}_{\text{between},i}
-+
-b_{0i}
-+
-\varepsilon_{ij}
-$${#eq-withinbetween}
-
-with
-
-$$
-b_{0i} \sim \mathcal{N}(0, \sigma_{\text{id}}^{2}),
-\qquad
-\varepsilon_{ij} \sim \mathcal{N}(0, \sigma^{2})
-$$
-
-The coefficient $\beta_{W}$ estimates the within-female (plastic) effect of egg number on egg size, whereas $\beta_{B}$ estimates the between-female (strategic) effect.
-
-To facilitate comparison of effect sizes, continuous predictors were standardized by subtracting the mean and dividing by the standard deviation:
-
-$$
-X_{\text{std}} = \frac{X - \bar{X}}{\mathrm{SD}(X)}
-$${#eq-standardization}
-
-The within-female and between-female components were standardized across their respective distributions. When estimating standardized regression coefficients, the response variable was also scaled to unit standard deviation. Standardized coefficients therefore represent the expected change (in standard deviation units) in egg size per one standard deviation change in the predictor.
-
-To test whether females differed in their propensity to trade off egg size against egg number, I fitted a random-slopes model allowing the within-female effect of egg number to vary among females:
-
-$$
-\text{mean egg size}_{ij} =
-\beta_0 +
-\beta_W \,\text{egg\_number}_{\text{within},ij} +
-\beta_B \,\text{egg\_number}_{\text{between},i} +
-(1 + \text{egg\_number}_{\text{within}} \mid \text{id}) +
-\varepsilon_{ij}
-$${#eq-randomslopes}
-
-This model estimates variance in within-female slopes as well as the intercept–slope correlation, thereby quantifying heterogeneity in allocation strategies. Specifically, it allows assessment of whether females with larger average egg size differ systematically in the strength or direction of their within-female trade-off. This model was used to quantify individual variation in slopes but not to derive standardized fixed effects.
-
+To test whether females differed in their propensity to trade off egg size against egg number, I fitted a mixed-effects model that allowed the within-female effect of egg number to vary among females. The model included mean egg size as the response variable and partitioned egg number into two components: a within-female component (capturing how deviations from a female’s own average egg number affected egg size) and a between-female component (capturing differences among females in their average egg number). Female identity was included as a random effect with both random intercepts and random slopes for the within-female component of egg number. This approach estimates variation among females in their within-female slopes, as well as the correlation between intercepts and slopes, thereby quantifying heterogeneity in allocation strategies. Specifically, it allows assessment of whether females with larger average egg size differ systematically in the strength or direction of their within-female trade-off between egg number and egg size. The model was used to quantify individual variation in slopes but not to derive standardized fixed effects.
 Because both egg number and egg size varied systematically across clutches, we tested whether clutch order explained the within-female association by including clutch as a fixed effect in the within–between model:
 
 $$
@@ -228,23 +84,27 @@ This model evaluates whether the within-female slope persists after accounting f
 
 Weakly informative priors were specified for all model parameters to regularize estimation while remaining minimally restrictive. All models were fitted using Markov chain Monte Carlo (MCMC) sampling with four independent chains and 4,000 iterations to ensure adequate posterior exploration. Convergence was evaluated using the potential scale reduction factor ($\hat{R}$ = 1.00), effective sample sizes (bulk and tail ESS), and visual inspection of trace plots. All reported parameters satisfied standard convergence criteria ($\hat{R} \approx 1.00$). Parameter estimates are presented as posterior means with 95% credible intervals derived from the posterior distributions. Inference was based on CrIs that did not include zero.
 
-I examined whether the first and second clutches of eggs differed in egg size variation among (*V*~among~) and within (*V*~within~) females by constructing a univariate hierarchical linear mixed-effects model with scaled mean egg perimeter as the response variable, clutch (first or second) as a fixed effect, and female body size as a continuous covariate. I also included, as random effects, a random slope for each clutch for each female. In the dispersion part of the model, I included clutch as a fixed effect to estimate the within-individual (i.e. residual) variance in egg size for each clutch. I then tested whether the first and second clutch differed in egg size at the among- and within-female levels. Data were visualized using *ggplot* [@wickham2016].
+To compare clutch-specific variance components independently of random-slope parameterisation, we fitted a hierarchical Gaussian model in which female effects were estimated separately for first and second clutches. Scaled egg size was modelled as a function of clutch (first vs. second clutch) with clutch-specific random intercepts for female identity. This parameterisation estimates separate between-female variance components for clutch 1 and clutch 2, as well as their correlation, allowing direct comparison of female-level variation across reproductive events. Within-clutch variance was allowed to differ between broods by modelling the residual standard deviation as a function of clutch. Clutch-specific variance components were derived from posterior samples, and differences between clutches were evaluated using posterior contrasts.
+
+Data were visualized using *ggplot* [@wickham2016].
 
 # Results
 ### Effect of clutch order on egg size and number
 Both egg number and egg size declined in the second clutch. In the multivariate Gaussian–Poisson model, egg size was smaller in clutch two ($\bar{x}$ ± SE = `r myround(summary.stat[2,2],2)` ± `r myround(summary.stat[2,5],2)`) relative to clutch one ($\bar{x}$ = `r myround(summary.stat[1,2],2)` ± `r myround(summary.stat[1,5],2)`; $\beta$ = `r myround(m_mv_2.sum[3,5],2)`, 95% CrI (`r myround(m_mv_2.sum[3,7],2)`, `r myround(m_mv_2.sum[3,8],2)`). Egg number also declined significantly (clutch one: $\bar{x}$ = `r myround(summary.stat[1,6],2)` ± `r myround(summary.stat[1,9],2)`; clutch two: $\bar{x}$ = `r myround(summary.stat[2,6],2)` ± `r myround(summary.stat[2,9],2)`; log-scale $\beta$ = `r myround(m_mv_2.sum[4,5],2)`, 95% CrI (`r myround(m_mv_2.sum[4,7],2)`, `r myround(m_mv_2.sum[4,8],2)`)), corresponding to an approximate 34% reduction on the natural scale ($e^{`r myround(m_mv_2.sum[4,5], 3)`} \approx `r myround(exp(m_mv_2.sum[4,5]), 2)`$). Among-female variation remained detectable for both egg size (SD = 0.091, 95% CrI [0.009, 0.165]) and egg number (SD = 0.355, 95% CrI [0.273, 0.460]), indicating persistent heterogeneity across broods.
 
 ### Multilevel correlations between egg number and egg size
-Across all observations, the raw Pearson correlation between egg number and egg size was weak and close to zero ($r_{raw}$ = `r myround(r_raw[1],2)`, 95% CI [`r myround(r_raw_ci95[1],2)`, `r myround(r_raw_ci95[2],2)`]), suggesting no clear phenotypic association when hierarchical structure was ignored. In contrast, the between-female Pearson correlation calculated from female means was moderate and negative ($r_{between}$ = `r myround(r_between[1],2)`, 95% CI [`r myround(r_between_ci95[1],2)`, `r myround(r_between_ci95[2],2)`]). Females that produced more eggs on average tended to lay smaller eggs. The multivariate Gaussian model partitioned covariation into among-female and residual components. After accounting for female identity, the residual (within-female) correlation between egg number and egg size was effectively zero and highly uncertain ($r_{within}$ = `r myround(r_within[1],4)`, 95% CI [`r myround(within_credible[1],2)`, `r myround(within_credible[2],2)`]). Thus, apparent phenotypic independence masked a moderate negative association among females but no detectable clutch-level trade-off within females.
+Across all observations, the raw Pearson correlation between egg number and egg size was weak and close to zero ($r_{raw}$ = `r myround(r_raw[1],2)`, 95% CI [`r myround(r_raw_ci95[1],2)`, `r myround(r_raw_ci95[2],2)`]), suggesting no clear phenotypic association when hierarchical structure was ignored. In contrast, the between-female Pearson correlation calculated from female means was moderate and negative ($r_{between}$ = `r myround(r_between[1],2)`, 95% CI [`r myround(r_between_ci95[1],2)`, `r myround(r_between_ci95[2],2)`]; @fig-one). Females that produced more eggs on average tended to lay smaller eggs. The multivariate Gaussian model partitioned covariation into among-female and residual components. After accounting for female identity, the residual (within-female) correlation between egg number and egg size was effectively zero and highly uncertain ($r_{within}$ = `r myround(r_within[1],4)`, 95% CI [`r myround(within_credible[1],2)`, `r myround(within_credible[2],2)`]; @fig-two). Thus, apparent phenotypic independence masked a moderate negative association among females but no detectable clutch-level trade-off within females.
 
 ### Within–between mixed-effects models
-In the within–between mixed-effects model, egg size varied among females (random-intercept SD = `r myround(ran_int[1],2)`, 95% CrI [`r myround(ran_int[3],2)`, `r myround(ran_int[4],2)`]). The within-female effect of egg number on egg size was small and uncertain ($\beta_{W}$ = `r myround(fixef(fit.null)[2,1], 4)`, 95% CrI [`r myround(fixef(fit.null)[2,3], 4)`, `r myround(fixef(fit.null)[2,4], 4)`]). On the natural scale, this corresponds to an increase of approximately 0.027 units in egg size for every additional 10 eggs within a female — an effect that was not credibly different from zero. In contrast, the between-female effect was negative ($\beta_{B}$ = `r myround(fixef(fit.null)[3,1], 4)`, 95% CrI [`r myround(fixef(fit.null)[3,3], 4)`, `r myround(fixef(fit.null)[3,4], 4)`]). Females differing by 10 eggs in mean clutch size differed by approximately 0.038 units in egg size. Although the credible interval extended to zero, the posterior distribution was predominantly negative, consistent with a modest among-female trade-off.
+In the within–between mixed-effects model, egg size varied among females (random-intercept SD = `r myround(ran_int[1],2)`, 95% CrI [`r myround(ran_int[3],2)`, `r myround(ran_int[4],2)`]). The within-female effect of egg number on egg size was small and uncertain ($\beta_{W}$ = `r myround(fixef(fit.null)[2,1], 4)`, 95% CrI [`r myround(fixef(fit.null)[2,3], 4)`, `r myround(fixef(fit.null)[2,4], 4)`]; @fig-three). On the natural scale, this corresponds to an increase of approximately 0.027 units in egg size for every additional 10 eggs within a female — an effect that was not credibly different from zero. In contrast, the between-female effect was negative ($\beta_{B}$ = `r myround(fixef(fit.null)[3,1], 4)`, 95% CrI [`r myround(fixef(fit.null)[3,3], 4)`, `r myround(fixef(fit.null)[3,4], 4)`]; @fig-one). Females differing by 10 eggs in mean clutch size differed by approximately 0.038 units in egg size. Although the credible interval extended to zero, the posterior distribution was predominantly negative, consistent with a modest among-female trade-off.
 
 Standardized coefficients reinforced the difference in magnitude between hierarchical levels. The standardized within-female effect was positive but uncertain ($\beta_{Wstandardized}$ = `r myround(std_effects_table[1,2],2)`, 95% CrI [`r myround(std_effects_table[1,3],2)`, `r myround(std_effects_table[1,4],2)`]), whereas the standardized between-female effect was negative and its credible interval did not overlap zero ($\beta_{Bstandardized}$ = `r myround(std_effects_table[2,2],2)`, 95% CrI [`r myround(std_effects_table[2,3],3)`, `r myround(std_effects_table[2,4],3)`]). Thus, the negative association was stronger and more consistent among females than within females.
 
-Allowing within-female slopes to vary among females produced similar fixed-effect estimates  ($\beta_{W}$ = `r myround(fixef(m_rs)[2,1], 4)`, 95% CrI [`r myround(fixef(m_rs)[2,3], 4)`, `r myround(fixef(m_rs)[2,4], 4)`]; $\beta_{B}$ = `r myround(fixef(m_rs)[3,1], 4)`, 95% CrI [`r myround(fixef(m_rs)[3,3], 4)`, `r myround(fixef(m_rs)[3,4], 4)`]). Variation in within-female slopes was small (SD = `r myround(ran_int.slopes[1],4)`, 95% CrI [`r myround(ran_int.slopes[3],4)`, `r myround(ran_int.slopes[4],4)`]), and the intercept–slope correlation was highly uncertain (*r* = `r myround(ran_int.slopes.cor[1],2)`, 95% CrI [`r myround(ran_int.slopes.cor[3],2)`, `r myround(ran_int.slopes.cor[4],2)`]), indicating no strong evidence that females differed substantially in plastic allocation patterns.
+Allowing within-female slopes to vary among females produced similar fixed-effect estimates  ($\beta_{W}$ = `r myround(fixef(m_rs)[2,1], 4)`, 95% CrI [`r myround(fixef(m_rs)[2,3], 4)`, `r myround(fixef(m_rs)[2,4], 4)`]; $\beta_{B}$ = `r myround(fixef(m_rs)[3,1], 4)`, 95% CrI [`r myround(fixef(m_rs)[3,3], 4)`, `r myround(fixef(m_rs)[3,4], 4)`]; @fig-three). Variation in within-female slopes was small (SD = `r myround(ran_int.slopes[1],4)`, 95% CrI [`r myround(ran_int.slopes[3],4)`, `r myround(ran_int.slopes[4],4)`]), and the intercept–slope correlation was highly uncertain (*r* = `r myround(ran_int.slopes.cor[1],2)`, 95% CrI [`r myround(ran_int.slopes.cor[3],2)`, `r myround(ran_int.slopes.cor[4],2)`]), indicating no strong evidence that females differed substantially in plastic allocation patterns.
 
 Because both egg number and egg size declined across clutches, clutch order was included as an additional fixed effect to test whether it explained the weak positive within-female slope. When clutch order was accounted for, the within-female effect collapsed to zero ($\beta_{W}$ = `r myround(clutch_order_within[1], 4)`, 95% CrI [`r myround(clutch_order_within[3], 4)`, `r myround(clutch_order_within[4], 4)`]). Thus, there was no evidence that females plastically traded egg number against egg size within clutches; the apparent association in the initial model was entirely explained by parallel declines from clutch one to clutch two.
+
+#### Egg size variation between and within clutches
 
 
 # Discussion
@@ -309,14 +169,21 @@ block_section(
 ##Figures
 
 ::: {#fig-one}
-![](Figure_1.jpg)
+![](figure_1.jpg)
 
-Relationship between mean egg number per female and mean egg size per female. Each point represents a single female (averaged across clutches). The solid black line shows the posterior mean regression from the within–between mixed-effects model, 
+Relationship between mean egg number per female and mean egg size per female. Each point represents a single female (average of both clutches). The solid black line shows the posterior mean regression from the within–between mixed-effects model, 
 and the shaded ribbon represents the 95% credible interval of the fitted relationship. The slope reflects the between-female effect ($\beta_{B}$ = `r myround(fixef(fit.null)[3,1], 4)`, 95% CrI [`r myround(fixef(fit.null)[3,3], 4)`, `r myround(fixef(fit.null)[3,4], 4)`]), indicating whether females that produce more eggs on average lay larger or smaller eggs. This relationship corresponds to the Pearson correlation calculated among female means ($r_{between}$ = `r myround(r_between[1],2)`, 95% CI [`r myround(r_between_ci95[1],2)`, `r myround(r_between_ci95[2],2)`]).
 :::
 
 ::: {#fig-two}
-![](Figure_2.jpg)
+![](figure_2.jpg)
 
-Mean egg size plotted against within-female deviation in egg number (clutch size minus each female’s mean). Points represent individual broods, and thin gray lines connect successive broods from the same female. The solid black line shows the posterior mean population-level effect of within-female egg-number deviation estimated from the mixed-effects model. The shaded ribbon represents the 95% credible interval of the posterior expected value (random effects excluded). Positive values on the x-axis indicate broods in which a female laid more eggs than her average, whereas negative values indicate broods with fewer eggs than her average. Note that second clutches (blue points) tend to negatively deviate from zero whereas first clutches (salmon points) tend to positively deviate from zero.The slope of the population-level line reflects the estimated within-female plastic response of egg size to changes in egg number `r round(fixef(fit.null)['egg_number_within','Estimate'], 2)`.]
+Within-female residual relationship between egg number and egg size from a multivariate Bayesian model. Points show posterior mean residuals for egg number and mean egg size for each clutch (n=82), extracted from a multivariate Gaussian *brms* model fitted with correlated residuals (`set_rescor(TRUE)`). Residuals therefore represent variation remaining after accounting for the random effects specified in @eq-residual, isolating within-female covariance between traits. The solid black line shows the linear regression fit to the residual values for visualization. The shallow slope is consistent with the posterior residual correlation estimated by the model (*r* = `r myround(rescor_summary[[1]],4)` [`r myround(rescor_summary[[2]],4)`, `r myround(rescor_summary[[3]],4)`]), indicating little evidence for a within-female trade-off between egg number and egg size.
+:::
+
+
+::: {#fig-three}
+![](figure_3.jpg)
+
+Mean egg size plotted against within-female deviation in egg number (clutch size minus each female’s mean). Points represent individual clutches, and thin gray lines connect successive clutches from the same female. The solid black line shows the posterior mean population-level effect of within-female egg-number deviation estimated from the mixed-effects model. The shaded ribbon represents the 95% credible interval of the posterior expected value (random effects excluded). Positive values on the x-axis indicate broods in which a female laid more eggs than her average, whereas negative values indicate broods with fewer eggs than her average. Note that second clutches (blue points) tend to negatively deviate from zero whereas first clutches (salmon points) tend to positively deviate from zero. The slope of the population-level line reflects the estimated within-female plastic response of egg size to changes in egg number `r round(fixef(fit.null)['egg_number_within','Estimate'], 2)`.]
 :::

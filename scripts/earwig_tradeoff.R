@@ -228,49 +228,48 @@ m_mv_2.sum = tidy(m_mv_2, effects = "fixed")
 # =========================================
 # Multivariate model for residual correlation
 # =========================================
-priors_mv <- c(
-  
-  # FIXED EFFECTS (egg size)
-  prior(normal(0, 2), class = "b", resp = "meaneggsize"),
-  
-  # INTERCEPTS (both models)
-  prior(normal(0, 5), class = "Intercept", resp = "meaneggsize"),
-  prior(normal(0, 5), class = "Intercept", resp = "eggnumber"),
-  
-  # RANDOM INTERCEPT SDs
-  prior(student_t(3, 0, 2.5), class = "sd", resp = "meaneggsize"),
-  prior(student_t(3, 0, 2.5), class = "sd", resp = "eggnumber"),
-  
-  # RESIDUAL SDs
-  prior(student_t(3, 0, 2.5), class = "sigma", resp = "meaneggsize"),
-  prior(student_t(3, 0, 2.5), class = "sigma", resp = "eggnumber"),
-  
-  # RESIDUAL CORRELATION
-  prior(lkj(2), class = "rescor")
-)
-
-f_size <- bf(
-  mean.egg.size ~ egg_number_within + egg_number_between + (1 | id)
-)
-
-f_number <- bf(
-  egg.number ~ (1 | id)
-)
-
-m_mv <- brm(
-  f_size + f_number + set_rescor(TRUE),
-  data = df,
-  family = gaussian(),
-  prior = priors_mv,
-  file = "data/processed/m_mv",
-  backend = "cmdstanr",
-  control = list(adapt_delta = 0.999),
-  chains = 4,
-  cores = 4,
-  iter = 4000
-)
-
-print(summary(m_mv), digits = 4)
+# priors_mv <- c(
+#   
+#   # Intercepts (centered on data scale)
+#   prior(normal(0, 10), class = "Intercept", resp = "meaneggsize"),
+#   prior(normal(0, 10), class = "Intercept", resp = "eggnumber"),
+#   
+#   # Between-female SDs (random intercept variance)
+#   prior(exponential(1), class = "sd", resp = "meaneggsize"),
+#   prior(exponential(1), class = "sd", resp = "eggnumber"),
+#   
+#   # Residual SDs (within-female variance)
+#   prior(exponential(1), class = "sigma", resp = "meaneggsize"),
+#   prior(exponential(1), class = "sigma", resp = "eggnumber"),
+#   
+#   # Residual correlation (LKJ prior)
+#   prior(lkj(2), class = "rescor")
+# )
+# 
+# #get_prior(f_size + f_number, data = df, family = gaussian())
+# 
+# f_size <- bf(
+#   mean.egg.size ~ (1 | id)
+# )
+# 
+# f_number <- bf(
+#   egg.number ~ (1 | id)
+# )
+# 
+# m_mv <- brm(
+#   f_size + f_number + set_rescor(TRUE),
+#   data = df,
+#   family = gaussian(),
+#   prior = priors_mv,
+#   file = "data/processed/m_mv",
+#   backend = "cmdstanr",
+#   control = list(adapt_delta = 0.999),
+#   chains = 4,
+#   cores = 4,
+#   iter = 4000
+# )
+# 
+# print(summary(m_mv), digits = 4)
 m_mv <- readRDS(file = "data/processed/m_mv.rds")
 
 # Extract posterior draws
@@ -611,10 +610,178 @@ ran_int.slopes.cor <- posterior_summary(m_rs, variable = "cor_id__Intercept__egg
 #   ) +
 #   theme_classic()
 
-## ---- end
+# =========================================
+# Egg size variation
+# =========================================
+
+earwig_egg_3 <- earwig_egg_2 %>%
+  mutate(
+   brood_factor = factor(brood,
+                          levels = c(1, 2),        # Original numeric values
+                          labels = c("one", "two"))) # New descriptive labels
+
+# egg.size.bf = bf(scale(mean.perim) ~ brood_factor + (1|a|id) + (0+brood_factor||id), sigma ~ brood_factor + (1|a|id)) # need to have (0+brood||id) in order to get sd_id_broodone and sd_id_broodtwo
+# 
+# #run the model
+# egg.size.model <- brm(egg.size.bf,
+#                       data = earwig_egg_3,
+#                       family = gaussian,
+#                       cores = 6, 
+#                       chains = 6, 
+#                       warmup = 1000,
+#                       iter = 4000,
+#                       seed = 34, #make sure to set the seed to make results reproducible
+#                       file = "data/processed/egg.size.model.rds",
+#                       control = list(adapt_delta = 0.999))
+# summary(egg.size.model)
+# get_variables(egg.size.model)
+# pp_check(egg.size.model,ndraws = 100)
+# 
+# post <- as_draws_df(egg.size.model)
+# 
+# ### between
+# # Between-female SDs
+# sd_int  <- post$sd_id__Intercept
+# sd_b2   <- post$sd_id__brood_factortwo
+# 
+# # Convert to variance
+# var_B1 <- sd_int^2
+# var_B2 <- sd_int^2 + sd_b2^2
+# 
+# # Summaries
+# summary_B1 <- quantile(var_B1, probs = c(.025, .5, .975))
+# summary_B2 <- quantile(var_B2, probs = c(.025, .5, .975))
+# 
+# summary_B1
+# summary_B2
+# 
+# diff_between <- var_B2 - var_B1
+# 
+# quantile(diff_between, probs = c(.025, .5, .975))
+# mean(diff_between > 0)  # posterior probability brood2 > brood1
+
+# # brood 1
+# Median = 0.15
+# 95% CI = [0.0006, 0.46]
+# 
+# # brood 2
+# Median = 0.63
+# 95% CI = [0.42, 1.02]
+# Difference (B2 − B1):
+# Median = 0.48
+# 95% CI = [0.20, 0.87]
+# Posterior probability > 0 = 1.00
+
+
+
+# alternative model
+ 
+egg.size.bf.alt <- bf(
+  scale(mean.perim) ~ brood_factor + (0 + brood_factor | id),
+  sigma ~ brood_factor
+)
+
+egg.size.model.alt <- brm(
+  egg.size.bf.alt,
+  data = earwig_egg_3,
+  family = gaussian(),
+  chains = 6,
+  cores = 6,
+  iter = 4000,
+  warmup = 1000,
+  file = "data/processed/egg.size.model2.rds",
+  control = list(adapt_delta = 0.999),
+  seed = 34
+)
+
+egg.size.model.alt <- readRDS(file = "data/processed/egg.size.model2.rds")
+
+# between-female
+post_alt <- as_draws_df(egg.size.model.alt)
+
+sd_B1_alt <- post_alt$sd_id__brood_factorone
+sd_B2_alt <- post_alt$sd_id__brood_factortwo
+
+var_B1_alt <- sd_B1_alt^2
+var_B2_alt <- sd_B2_alt^2
+
+quantile(var_B1_alt, c(.025,.5,.975))
+quantile(var_B2_alt, c(.025,.5,.975))
+
+diff_alt <- var_B2_alt - var_B1_alt
+quantile(diff_alt, c(.025,.5,.975))
+mean(diff_alt > 0)
+
+# #Brood 1
+# Median ≈ 0.77
+# 95% CrI [0.52, 1.23]
+# 
+# #Brood 2
+# Median ≈ 0.64
+# 95% CrI [0.42, 1.00]
+# 
+# #Difference (B2 − B1)
+# Median ≈ −0.14
+# 95% CrI [−0.60, 0.29]
+# Posterior P(B2 > B1) ≈ 0.26
+# #Now brood 1 variance is slightly larger, and the difference is uncertain.
+
+
+### within-clutch
+# Linear predictor for sigma
+sigma_int  <- post_alt$b_sigma_Intercept
+sigma_b2   <- post_alt$b_sigma_brood_factortwo
+
+# Convert from log scale
+sigma_B1 <- exp(sigma_int)
+sigma_B2 <- exp(sigma_int + sigma_b2)
+
+# Convert to variance
+var_within_B1 <- sigma_B1^2
+var_within_B2 <- sigma_B2^2
+
+# Summaries
+quantile(var_within_B1, c(.025,.5,.975))
+quantile(var_within_B2, c(.025,.5,.975))
+
+diff_within <- var_within_B2 - var_within_B1
+
+quantile(diff_within, c(.025,.5,.975))
+mean(diff_within > 0)
+
+# # brood 1
+# Median = 0.19
+# 95% CrI = [0.17, 0.22]
+# 
+# # brood 2
+# Median = 0.32
+# 95% CrI = [0.28, 0.37]
+# 
+# # Difference:
+# Median = 0.13
+# 95% CrI = [0.096, 0.164]
+# Posterior probability > 0 = 1.00
+
+# repeatability per brood
+R_B1 <- var_B1 / (var_B1 + var_within_B1)
+quantile(R_B1, c(.025,.5,.975))
+
+R_B2 <- var_B2 / (var_B2 + var_within_B2)
+quantile(R_B2, c(.025,.5,.975))
+
+post_alt$cor_id__brood_factorone__brood_factortwo
+quantile(post_alt$cor_id__brood_factorone__brood_factortwo
+, c(.025,.5,.975))
+
+loo(egg.size.model, egg.size.model.alt)
+
+#==========================================
+
+
+
 
 # =========================================
-# 3-panel plot
+# Plots
 # =========================================
 # between-female correlation
 
@@ -640,7 +807,7 @@ p_between <- ggplot(df_between, aes(x = mean_egg_number, y = mean_egg_size)) +
         axis.title.y = element_text(size=14,face="bold"),
         axis.text.x = element_text(size=12),
         axis.text.y = element_text(size=12))
-ggsave(p_between, filename="Figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+#ggsave(p_between, filename="Figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
 
 # # within-female correlation with reaction norms
 
@@ -709,7 +876,7 @@ p_within <- ggplot(df_within,
         axis.title.y = element_text(size=14,face="bold"),
         axis.text.x = element_text(size=12),
         axis.text.y = element_text(size=12))
-ggsave(p_within, filename="Figure_2.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+#ggsave(p_within, filename="Figure_3.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
 
 # # residual correlation plot
 # 
@@ -755,10 +922,26 @@ p_resid <- ggplot(df_resid, aes(x = resid_egg_number, y = resid_egg_size)) +
         axis.title.y = element_text(size=14,face="bold"),
         axis.text.x = element_text(size=12),
         axis.text.y = element_text(size=12))
-ggsave(p_resid, filename="Figure_3.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+#ggsave(p_resid, filename="figure_2.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+
+post_alt <- as_draws_df(egg.size.model.alt)
+
+df_plot <- tibble(
+  var_between_B1 = post_alt$sd_id__brood_factorone^2,
+  var_between_B2 = post_alt$sd_id__brood_factortwo^2,
+  var_within_B1  = var_within_B1,
+  var_within_B2  = var_within_B2
+) %>%
+  pivot_longer(everything(),
+               names_to = "component",
+               values_to = "variance")
+
+ggplot(df_plot, aes(x = variance, fill = component)) +
+  geom_density(alpha = 0.5) +
+  theme_classic() +
+  labs(x = "Variance", y = "Posterior density")
 
 
-
-
+## ---- end
 
 
