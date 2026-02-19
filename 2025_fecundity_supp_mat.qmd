@@ -1,5 +1,5 @@
 ---
-title: "Supplemental Material: Residual correlation shows that European earwigs do not trade off clutch and egg size."
+title: "Supplemental Material: Disentangling within- and between-female egg size–number trade-offs in the European earwig"
 authors:
   - name: Clint D. Kelly
     affiliations:
@@ -52,10 +52,113 @@ block_section(
 
 ```{r}
 #| echo: false
+#| message: false
+#| warning: false
+
+library(brms)
+library(dplyr)
+library(tidyr)
+library(tidybayes)
+library(flextable)
+
+# -----------------------------
+# 1. FIXED EFFECTS
+# -----------------------------
+
+fixed_tab <- fit.null |>
+  spread_draws(b_Intercept,
+               b_egg_number_within,
+               b_egg_number_between) |>
+  pivot_longer(cols = everything(),
+               names_to = "term",
+               values_to = "value") |>
+  group_by(term) |>
+  median_qi(value, .width = 0.95) |>
+  ungroup() |>
+  mutate(
+    term = recode(term,
+                  b_Intercept = "Intercept",
+                  b_egg_number_within = "Egg number (within female)",
+                  b_egg_number_between = "Egg number (between female)"),
+    Estimate = round(value, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter = term, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+fixed_ft <- flextable(fixed_tab) |>
+  set_caption("Table S1. Fixed effects from Bayesian mixed model predicting mean egg size.") |>
+  autofit()
+
+fixed_ft
+
+
+# -----------------------------
+# 2. RANDOM INTERCEPT (ID)
+# -----------------------------
+
+random_tab <- fit.null |>
+  spread_draws(sd_id__Intercept) |>
+  median_qi(sd_id__Intercept, .width = 0.95) |>
+  mutate(
+    Parameter = "SD (Intercept | Female ID)",
+    Estimate = round(sd_id__Intercept, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+random_ft <- flextable(random_tab) |>
+  set_caption("Table S2. Random intercept variance (female ID).") |>
+  autofit()
+
+random_ft
+
+
+# -----------------------------
+# 3. RESIDUAL VARIANCE
+# -----------------------------
+
+sigma_tab <- fit.null |>
+  spread_draws(sigma) |>
+  median_qi(sigma, .width = 0.95) |>
+  mutate(
+    Parameter = "Residual SD (sigma)",
+    Estimate = round(sigma, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+sigma_ft <- flextable(sigma_tab) |>
+  set_caption("Table S3. Residual variance parameter.") |>
+  autofit()
+
+sigma_ft
+```
+
+
+
+\newpage
+
+```{r}
+#| echo: false
 #| results: asis
 #| warning: FALSE
-#| label: tbl-one
-#| tbl-cap: Bayesian multivariate mixed-effects model output for effect of pronotum length and clutch number on clutch size and egg size in European earwigs (*Forficula auricularia*).
+#| label: tbl-two
+#| tbl-cap: Bayesian multivariate mixed-effects model output to determine residual correlation between egg number and size in European earwigs (*Forficula auricularia*).
+
+m_mv
+```
+
+\newpage
+
+```{r}
+#| echo: false
+#| results: asis
+#| warning: FALSE
+#| label: tbl-three
+#| tbl-cap: Bayesian mixed-effects model output for effect of within and between deviation in egg number on egg size in European earwigs (*Forficula auricularia*).
 
 fit.null 
 ```
@@ -66,10 +169,32 @@ fit.null
 #| echo: false
 #| results: asis
 #| warning: FALSE
-#| label: tbl-two
-#| tbl-cap: Comparison of Bayesian multivariate mixed-effects models having different measures of body size (pronotum length, body mass, scaled mass index, PC1) or no covariate (null). Models were compared by estimating their out-of-sample predictive performance using Approximate Leave-One-Out Cross-Validation (LOO-CV) and then ranked based on their Expected Log Predictive Density (ELPD).
+#| label: tbl-four
+#| tbl-cap: Bayesian  mixed-effects model to determine effect of clutch order on within-female deviation in egg number on egg size in European earwigs (*Forficula auricularia*).
 
-model.comparison.report
+m_wb_brood
 ```
 
 \newpage
+
+```{r}
+#| echo: false
+#| results: asis
+#| warning: FALSE
+#| label: tbl-five
+#| tbl-cap: Bayesian  mixed-effects random-slopes model to test whether within-female slopes between egg number and size differ among female European earwigs (*Forficula auricularia*).
+
+m_rs
+```
+
+\newpage
+
+```{r}
+#| echo: false
+#| results: asis
+#| warning: FALSE
+#| label: tbl-six
+#| tbl-cap: Bayesian mixed-effects model to calcualte between-female and within-clutch variation in egg size in European earwigs (*Forficula auricularia*).
+
+egg.size.model.alt
+```

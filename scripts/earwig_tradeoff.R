@@ -19,6 +19,9 @@ library(factoextra)
 library(officer)
 library(flextable)
 library(rptR)
+library(modelsummary)
+library(parameters)
+
 
 # =========================================
 # Load data
@@ -467,19 +470,19 @@ cat("Raw phenotypic correlation (r_raw) = ", round(r_raw.sci, 3),
 #   prior(exponential(1), class = "sigma")
 # )
 # 
-# fit.null <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between +
-#     (1 | id),
-#   data = df,
-#   family = gaussian(),
-#   prior = priors,
-#   save_pars = save_pars(all = TRUE),
-#   file = "data/processed/fit.null7",
-#   backend = "cmdstanr",
-#   chains = 4, cores = 4, thin = 6, iter = 4000
-# )
+fit.null <- brm(
+  mean.egg.size ~
+    egg_number_within +
+    egg_number_between +
+    (1 | id),
+  data = df,
+  family = gaussian(),
+  prior = priors,
+  save_pars = save_pars(all = TRUE),
+  file = "data/processed/fit.null7",
+  backend = "cmdstanr",
+  chains = 4, cores = 4, thin = 6, iter = 4000
+)
 # print(summary(fit.null), digits = 4)
 # fit.null <- add_criterion(fit.null, "loo", moment_match=TRUE) # best model
 fit.null <- readRDS(file = "data/processed/fit.null.rds")
@@ -488,6 +491,7 @@ myround(fixef(fit.null)[2,1],4)
 
 ran_int <- posterior_summary(fit.null, variable = "sd_id__Intercept")
 
+get_variables(fit.null)
 # =========================================
 # Standardized effects
 # =========================================
@@ -784,8 +788,6 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 #loo(egg.size.model, egg.size.model.alt)
 
 #==========================================
-
-
 
 
 # =========================================
