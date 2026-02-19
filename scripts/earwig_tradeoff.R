@@ -18,7 +18,6 @@ library(smatr)
 library(factoextra)
 library(officer)
 library(flextable)
-library(tidyverse)
 library(rptR)
 
 # =========================================
@@ -248,26 +247,26 @@ m_mv_2.sum = tidy(m_mv_2, effects = "fixed")
 # 
 # #get_prior(f_size + f_number, data = df, family = gaussian())
 # 
-# f_size <- bf(
-#   mean.egg.size ~ (1 | id)
-# )
-# 
-# f_number <- bf(
-#   egg.number ~ (1 | id)
-# )
-# 
-# m_mv <- brm(
-#   f_size + f_number + set_rescor(TRUE),
-#   data = df,
-#   family = gaussian(),
-#   prior = priors_mv,
-#   file = "data/processed/m_mv",
-#   backend = "cmdstanr",
-#   control = list(adapt_delta = 0.999),
-#   chains = 4,
-#   cores = 4,
-#   iter = 4000
-# )
+f_size <- bf(
+  mean.egg.size ~ (1 | id)
+)
+
+f_number <- bf(
+  egg.number ~ (1 | id)
+)
+
+m_mv <- brm(
+  f_size + f_number + set_rescor(TRUE),
+  data = df,
+  family = gaussian(),
+  prior = priors_mv,
+  file = "data/processed/m_mv",
+  backend = "cmdstanr",
+  control = list(adapt_delta = 0.999),
+  chains = 4,
+  cores = 4,
+  iter = 4000
+)
 # 
 # print(summary(m_mv), digits = 4)
 m_mv <- readRDS(file = "data/processed/m_mv.rds")
@@ -283,6 +282,27 @@ r_within <- mean(rescor_draws)
 
 # 95% credible interval
 within_credible <- quantile(rescor_draws, probs = c(0.025, 0.975))
+
+# Reapeatbility 
+
+post <- as_draws_df(m_mv)
+
+# Egg size repeatability
+R_size <- with(post,
+               sd_id__meaneggsize_Intercept^2 /
+                 (sd_id__meaneggsize_Intercept^2 + sigma_meaneggsize^2)
+)
+
+# Egg number repeatability
+R_number <- with(post,
+                 sd_id__eggnumber_Intercept^2 /
+                   (sd_id__eggnumber_Intercept^2 + sigma_eggnumber^2)
+)
+
+# Posterior summaries
+quantile(R_size, c(.025, .5, .975))
+quantile(R_number, c(.025, .5, .975))
+
 
 # =========================================
 # Raw phenotypic correlation (all broods)
@@ -340,38 +360,100 @@ r_between_ci95 <- ci_between_95$percent[4:5]
 cat("Between-female correlation (r_between) = ", round(r_between, 3),
     ", 95% CI = [", round(r_between_ci95[1], 3), ", ", round(r_between_ci95[2], 3), "]\n")
 
+# =========================================
+# Raw phenotypic correlation: fecundity vs size
+# =========================================
 
-# ## from multivariate model: (this model needs (1|p|id) as randome effect)
-# VarCorr(m_mv)
-# 
-# # residual between-female correlation (correlation between intercepts)
-# post <- as_draws_df(m_mv)
-# r_between <- post$`cor_id__meaneggsize_Intercept__eggnumber_Intercept`
-# posterior_summary(r_between)
-# mean(r_between)
-# quantile(r_between, c(.025, .975))
-# 
-# # total between-female correlation
-# post <- as_draws_df(m_mv)
-# beta_B  <- post$b_meaneggsize_egg_number_between
-# var_size_id   <- post$sd_id__meaneggsize_Intercept^2
-# var_number_id <- post$sd_id__eggnumber_Intercept^2
-# cor_id <- post$cor_id__meaneggsize_Intercept__eggnumber_Intercept
-# cov_id <- cor_id * sqrt(var_size_id * var_number_id)
-# 
-# # Between covariance
-# cov_between <- beta_B * var_number_id + cov_id
-# 
-# # Between variance in egg size
-# var_size_between <- beta_B^2 * var_number_id +
-#   var_size_id +
-#   2 * beta_B * cov_id
-# 
-# # Total between correlation
-# r_between_total <- cov_between /
-#   sqrt(var_size_between * var_number_id)
-# mean(r_between_total)
-# quantile(r_between_total, c(.025, .975))
+df.one <- df %>%
+  filter(brood=="one")
+
+## Pronotum
+
+# Function to compute Pearson correlation
+corr_raw_fun.pro <- function(data, indices) {
+  d <- data[indices, ]
+  cor(d$mean.pro, d$egg.number, use = "complete.obs")
+}
+
+# Run bootstrap (R = 5000)
+set.seed(123)
+boot_raw.pro <- boot(df.one, statistic = corr_raw_fun.pro, R = 5000)
+
+# 95% CI using percentile method
+ci_raw_95.pro <- boot.ci(boot_raw.pro, type = "perc", conf = 0.95)
+
+# Extract point estimate and CI
+r_raw.pro <- boot_raw.pro$t0
+r_raw_ci95.pro <- ci_raw_95.pro$percent[4:5]  # 2.5% and 97.5% percentiles
+
+cat("Raw phenotypic correlation (r_raw) = ", round(r_raw.pro, 3),
+    ", 95% CI = [", round(r_raw_ci95.pro[1], 3), ", ", round(r_raw_ci95.pro[2], 3), "]\n")
+
+## Body mass
+
+# Function to compute Pearson correlation
+corr_raw_fun.mass <- function(data, indices) {
+  d <- data[indices, ]
+  cor(d$mean.mass, d$egg.number, use = "complete.obs")
+}
+
+# Run bootstrap (R = 5000)
+set.seed(123)
+boot_raw.mass <- boot(df.one, statistic = corr_raw_fun.mass, R = 5000)
+
+# 95% CI using percentile method
+ci_raw_95.mass <- boot.ci(boot_raw.mass, type = "perc", conf = 0.95)
+
+# Extract point estimate and CI
+r_raw.mass <- boot_raw.mass$t0
+r_raw_ci95.mass <- ci_raw_95.mass$percent[4:5]  # 2.5% and 97.5% percentiles
+
+cat("Raw phenotypic correlation (r_raw) = ", round(r_raw.mass, 3),
+    ", 95% CI = [", round(r_raw_ci95.mass[1], 3), ", ", round(r_raw_ci95.mass[2], 3), "]\n")
+
+## PC1
+
+# Function to compute Pearson correlation
+corr_raw_fun.pc1 <- function(data, indices) {
+  d <- data[indices, ]
+  cor(d$pc1, d$egg.number, use = "complete.obs")
+}
+
+# Run bootstrap (R = 5000)
+set.seed(123)
+boot_raw.pc1 <- boot(df.one, statistic = corr_raw_fun.pc1, R = 5000)
+
+# 95% CI using percentile method
+ci_raw_95.pc1 <- boot.ci(boot_raw.pc1, type = "perc", conf = 0.95)
+
+# Extract point estimate and CI
+r_raw.pc1 <- boot_raw.pc1$t0
+r_raw_ci95.pc1 <- ci_raw_95.pc1$percent[4:5]  # 2.5% and 97.5% percentiles
+
+cat("Raw phenotypic correlation (r_raw) = ", round(r_raw.pc1, 3),
+    ", 95% CI = [", round(r_raw_ci95.pc1[1], 3), ", ", round(r_raw_ci95.pc1[2], 3), "]\n")
+
+## Scaled mass index (SCI)
+
+# Function to compute Pearson correlation
+corr_raw_fun.sci <- function(data, indices) {
+  d <- data[indices, ]
+  cor(d$mean.sci, d$egg.number, use = "complete.obs")
+}
+
+# Run bootstrap (R = 5000)
+set.seed(123)
+boot_raw.sci <- boot(df.one, statistic = corr_raw_fun.sci, R = 5000)
+
+# 95% CI using percentile method
+ci_raw_95.sci <- boot.ci(boot_raw.sci, type = "perc", conf = 0.95)
+
+# Extract point estimate and CI
+r_raw.sci <- boot_raw.sci$t0
+r_raw_ci95.sci <- ci_raw_95.sci$percent[4:5]  # 2.5% and 97.5% percentiles
+
+cat("Raw phenotypic correlation (r_raw) = ", round(r_raw.sci, 3),
+    ", 95% CI = [", round(r_raw_ci95.sci[1], 3), ", ", round(r_raw_ci95.sci[2], 3), "]\n")
 
 # =========================================
 # Fixed-effects model
@@ -403,77 +485,6 @@ cat("Between-female correlation (r_between) = ", round(r_between, 3),
 fit.null <- readRDS(file = "data/processed/fit.null.rds")
 
 myround(fixef(fit.null)[2,1],4)
-# fit.pro <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between + scale(mean.pro) +
-#     (1 | id),
-#   data = df,
-#   control = list(adapt_delta = 0.999),
-#   save_pars = save_pars(all = TRUE),
-#   family = gaussian(),
-#   file = "data/processed/fit.pro",
-#   backend = "cmdstanr",
-#   chains = 4, cores = 4,iter = 4000
-# )
-# print(summary(fit.pro), digits = 4)
-# fit.pro <- add_criterion(fit.pro, "loo", moment_match=TRUE)
-# 
-# fit.mass <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between + scale(mean.mass) +
-#     (1 | id),
-#   data = df,
-#   control = list(adapt_delta = 0.999),
-#   save_pars = save_pars(all = TRUE),
-#   family = gaussian(),
-#   file = "data/processed/fit.mass",
-#   backend = "cmdstanr",
-#   chains = 4, cores = 4,iter = 4000
-# )
-# print(summary(fit.mass), digits = 4)
-# fit.mass <- add_criterion(fit.mass, "loo", moment_match=TRUE)
-# 
-# fit.pc1 <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between + scale(pc1) +
-#     (1 | id),
-#   data = df,
-#   control = list(adapt_delta = 0.999),
-#   save_pars = save_pars(all = TRUE),
-#   family = gaussian(),
-#   file = "data/processed/fit.pc1",
-#   backend = "cmdstanr",
-#   chains = 4, cores = 4,iter = 4000
-# )
-# print(summary(fit.pc1), digits = 4)
-# fit.pc1 <- add_criterion(fit.pc1, "loo", moment_match=TRUE)
-# 
-# fit.smi <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between + scale(mean.sci) +
-#     (1 | id),
-#   data = df,
-#   control = list(adapt_delta = 0.999),
-#   save_pars = save_pars(all = TRUE),
-#   family = gaussian(),
-#   file = "data/processed/fit.smi",
-#   backend = "cmdstanr",
-#   chains = 4, cores = 4,iter = 4000
-# )
-# print(summary(fit.smi), digits = 4)
-# fit.smi <- add_criterion(fit.smi, "loo", moment_match=TRUE)
-# 
-# model.comparison <- loo_compare(fit.null, fit.pro, fit.mass, fit.pc1, fit.smi, criterion = "loo")
-# saveRDS(model.comparison, file = "data/processed/model.comparison.rds")
-model.comparison <- readRDS(file = "data/processed/model.comparison.rds")
-
-# model.comparison.report <-report(model.comparison) # fit.null is best model
-# saveRDS(model.comparison.report, file = "data/processed/model.comparison.report.rds")
-model.comparison.report <- readRDS(file = "data/processed/model.comparison.report.rds")
 
 ran_int <- posterior_summary(fit.null, variable = "sd_id__Intercept")
 
