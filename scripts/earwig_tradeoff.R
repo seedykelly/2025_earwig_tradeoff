@@ -23,6 +23,18 @@ library(modelsummary)
 library(parameters)
 library(cowplot)
 
+sci_latex <- function(x, digits = 2) {
+  if (length(x) != 1 || is.na(x)) return(NA_character_)
+  
+  s <- as.character(formatC(x, format = "e", digits = digits))
+  parts <- strsplit(s, "e")[[1]]
+  
+  mantissa <- parts[1]
+  exponent <- as.integer(parts[2])
+  
+  paste0(mantissa, " \\times 10^{", exponent, "}")
+}
+
 # =========================================
 # Load data
 # =========================================
