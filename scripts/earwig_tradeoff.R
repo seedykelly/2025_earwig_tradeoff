@@ -224,8 +224,10 @@ summary.stat <- df %>%
 #               backend = "cmdstanr",
 #               chains=4,cores=4,iter = 4000, warmup= 1000)
 # print(summary(m_mv_2), digits = 4)
+
 m_mv_2 <- readRDS(file = "data/processed/m_mv_2.rds")
 m_mv_2.sum = tidy(m_mv_2, effects = "fixed")
+get_variables(m_mv_2)
 
 # =========================================
 # Multivariate model for residual correlation
@@ -250,26 +252,26 @@ m_mv_2.sum = tidy(m_mv_2, effects = "fixed")
 # 
 # #get_prior(f_size + f_number, data = df, family = gaussian())
 # 
-f_size <- bf(
-  mean.egg.size ~ (1 | id)
-)
-
-f_number <- bf(
-  egg.number ~ (1 | id)
-)
-
-m_mv <- brm(
-  f_size + f_number + set_rescor(TRUE),
-  data = df,
-  family = gaussian(),
-  prior = priors_mv,
-  file = "data/processed/m_mv",
-  backend = "cmdstanr",
-  control = list(adapt_delta = 0.999),
-  chains = 4,
-  cores = 4,
-  iter = 4000
-)
+# f_size <- bf(
+#   mean.egg.size ~ (1 | id)
+# )
+# 
+# f_number <- bf(
+#   egg.number ~ (1 | id)
+# )
+# 
+# m_mv <- brm(
+#   f_size + f_number + set_rescor(TRUE),
+#   data = df,
+#   family = gaussian(),
+#   prior = priors_mv,
+#   file = "data/processed/m_mv",
+#   backend = "cmdstanr",
+#   control = list(adapt_delta = 0.999),
+#   chains = 4,
+#   cores = 4,
+#   iter = 4000
+# )
 # 
 # print(summary(m_mv), digits = 4)
 m_mv <- readRDS(file = "data/processed/m_mv.rds")
@@ -470,28 +472,28 @@ cat("Raw phenotypic correlation (r_raw) = ", round(r_raw.sci, 3),
 #   prior(exponential(1), class = "sigma")
 # )
 # 
-fit.null <- brm(
-  mean.egg.size ~
-    egg_number_within +
-    egg_number_between +
-    (1 | id),
-  data = df,
-  family = gaussian(),
-  prior = priors,
-  save_pars = save_pars(all = TRUE),
-  file = "data/processed/fit.null7",
-  backend = "cmdstanr",
-  chains = 4, cores = 4, thin = 6, iter = 4000
-)
+# fit.null <- brm(
+#   mean.egg.size ~
+#     egg_number_within +
+#     egg_number_between +
+#     (1 | id),
+#   data = df,
+#   family = gaussian(),
+#   prior = priors,
+#   save_pars = save_pars(all = TRUE),
+#   file = "data/processed/fit.null7",
+#   backend = "cmdstanr",
+#   chains = 4, cores = 4, thin = 6, iter = 4000
+# )
 # print(summary(fit.null), digits = 4)
 # fit.null <- add_criterion(fit.null, "loo", moment_match=TRUE) # best model
+
 fit.null <- readRDS(file = "data/processed/fit.null.rds")
 
 myround(fixef(fit.null)[2,1],4)
 
 ran_int <- posterior_summary(fit.null, variable = "sd_id__Intercept")
 
-get_variables(fit.null)
 # =========================================
 # Standardized effects
 # =========================================
@@ -522,7 +524,7 @@ std_effects_table <- data.frame(
 # =========================================
 
 # m_wb_brood <- brm(
-#   mean.egg.size ~ 
+#   mean.egg.size ~
 #     egg_number_within +
 #     egg_number_between +
 #     brood +
@@ -544,8 +546,8 @@ clutch_order_within <- brms::fixef(m_wb_brood)["egg_number_within", ]
 # Random slopes model
 # =========================================
 # m_rs <- brm(
-#   mean.egg.size ~ 
-#     egg_number_within + 
+#   mean.egg.size ~
+#     egg_number_within +
 #     egg_number_between +
 #     (1 + egg_number_within | id),
 #   data = df,
@@ -561,7 +563,7 @@ clutch_order_within <- brms::fixef(m_wb_brood)["egg_number_within", ]
 #   iter = 5000,
 #   control = list(adapt_delta = 0.99),
 #   file = "data/processed/m_rs",
-#   
+# 
 # )
 # print(summary(m_rs), digits = 4)
 
@@ -689,23 +691,23 @@ earwig_egg_3 <- earwig_egg_2 %>%
 
 # alternative model
  
-egg.size.bf.alt <- bf(
-  scale(mean.perim) ~ brood_factor + (0 + brood_factor | id),
-  sigma ~ brood_factor
-)
-
-egg.size.model.alt <- brm(
-  egg.size.bf.alt,
-  data = earwig_egg_3,
-  family = gaussian(),
-  chains = 6,
-  cores = 6,
-  iter = 4000,
-  warmup = 1000,
-  file = "data/processed/egg.size.model2.rds",
-  control = list(adapt_delta = 0.999),
-  seed = 34
-)
+# egg.size.bf.alt <- bf(
+#   scale(mean.perim) ~ brood_factor + (0 + brood_factor | id),
+#   sigma ~ brood_factor
+# )
+# 
+# egg.size.model.alt <- brm(
+#   egg.size.bf.alt,
+#   data = earwig_egg_3,
+#   family = gaussian(),
+#   chains = 6,
+#   cores = 6,
+#   iter = 4000,
+#   warmup = 1000,
+#   file = "data/processed/egg.size.model2.rds",
+#   control = list(adapt_delta = 0.999),
+#   seed = 34
+# )
 
 egg.size.model.alt <- readRDS(file = "data/processed/egg.size.model2.rds")
 
@@ -993,5 +995,4 @@ ggsave(p_variance, filename="figure_4.jpg", width=10.83, height=10.83, dpi=300,a
 
 
 ## ---- end
-
 
