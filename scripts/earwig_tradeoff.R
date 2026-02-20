@@ -183,131 +183,6 @@ summary.stat <- df %>%
             n.num    = n(),
             se.num   = sd.num / sqrt(n.num),)
 
-# =========================================
-# Effect of brood number
-# # =========================================
-# priors_mv2 <- c(
-# 
-#   # Gaussian response: mean.egg.size
-# 
-#   # Intercept
-#   prior(normal(0, 5), class = "Intercept", resp = "meaneggsize"),
-# 
-#   # Brood effect
-#   prior(normal(0, 2), class = "b", resp = "meaneggsize"),
-# 
-#   # Random intercept SD
-#   prior(student_t(3, 0, 2.5), class = "sd", resp = "meaneggsize"),
-# 
-#   # Residual SD
-#   prior(student_t(3, 0, 2.5), class = "sigma", resp = "meaneggsize"),
-# 
-# 
-#   # Poisson response: egg.number
-#   # (log link scale!)
-# 
-#   # Intercept (on log scale)
-#   prior(normal(2, 1.5), class = "Intercept", resp = "eggnumber"),
-# 
-#   # Brood effect (log scale)
-#   prior(normal(0, 0.5), class = "b", resp = "eggnumber"),
-# 
-#   # Random intercept SD (log scale)
-#   prior(student_t(3, 0, 1), class = "sd", resp = "eggnumber")
-# )
-# 
-# m_mv_2 <- brm(data = df,
-#               family = list(gaussian(), poisson()),
-#               bf(mvbind(mean.egg.size, egg.number) ~ 1 + brood + (1|id)) + set_rescor(FALSE),
-#               prior = priors_mv2,
-#               file = "data/processed/m_mv_2",
-#               backend = "cmdstanr",
-#               chains=4,cores=4,iter = 4000, warmup= 1000)
-# print(summary(m_mv_2), digits = 4)
-
-m_mv_2 <- readRDS(file = "data/processed/m_mv_2.rds")
-m_mv_2.sum = tidy(m_mv_2, effects = "fixed")
-get_variables(m_mv_2)
-
-# =========================================
-# Multivariate model for residual correlation
-# =========================================
-# priors_mv <- c(
-#   
-#   # Intercepts (centered on data scale)
-#   prior(normal(0, 10), class = "Intercept", resp = "meaneggsize"),
-#   prior(normal(0, 10), class = "Intercept", resp = "eggnumber"),
-#   
-#   # Between-female SDs (random intercept variance)
-#   prior(exponential(1), class = "sd", resp = "meaneggsize"),
-#   prior(exponential(1), class = "sd", resp = "eggnumber"),
-#   
-#   # Residual SDs (within-female variance)
-#   prior(exponential(1), class = "sigma", resp = "meaneggsize"),
-#   prior(exponential(1), class = "sigma", resp = "eggnumber"),
-#   
-#   # Residual correlation (LKJ prior)
-#   prior(lkj(2), class = "rescor")
-# )
-# 
-# #get_prior(f_size + f_number, data = df, family = gaussian())
-# 
-# f_size <- bf(
-#   mean.egg.size ~ (1 | id)
-# )
-# 
-# f_number <- bf(
-#   egg.number ~ (1 | id)
-# )
-# 
-# m_mv <- brm(
-#   f_size + f_number + set_rescor(TRUE),
-#   data = df,
-#   family = gaussian(),
-#   prior = priors_mv,
-#   file = "data/processed/m_mv",
-#   backend = "cmdstanr",
-#   control = list(adapt_delta = 0.999),
-#   chains = 4,
-#   cores = 4,
-#   iter = 4000
-# )
-# 
-# print(summary(m_mv), digits = 4)
-m_mv <- readRDS(file = "data/processed/m_mv.rds")
-
-# Extract posterior draws
-post <- as_draws_df(m_mv)
-
-# Extract residual correlation draws
-rescor_draws <- post$rescor__meaneggsize__eggnumber
-
-# Posterior mean
-r_within <- mean(rescor_draws)
-
-# 95% credible interval
-within_credible <- quantile(rescor_draws, probs = c(0.025, 0.975))
-
-# Reapeatbility 
-
-post <- as_draws_df(m_mv)
-
-# Egg size repeatability
-R_size <- with(post,
-               sd_id__meaneggsize_Intercept^2 /
-                 (sd_id__meaneggsize_Intercept^2 + sigma_meaneggsize^2)
-)
-
-# Egg number repeatability
-R_number <- with(post,
-                 sd_id__eggnumber_Intercept^2 /
-                   (sd_id__eggnumber_Intercept^2 + sigma_eggnumber^2)
-)
-
-# Posterior summaries
-quantile(R_size, c(.025, .5, .975))
-quantile(R_number, c(.025, .5, .975))
-
 
 # =========================================
 # Raw phenotypic correlation (all broods)
@@ -332,38 +207,6 @@ r_raw_ci95 <- ci_raw_95$percent[4:5]  # 2.5% and 97.5% percentiles
 
 cat("Raw phenotypic correlation (r_raw) = ", round(r_raw, 3),
     ", 95% CI = [", round(r_raw_ci95[1], 3), ", ", round(r_raw_ci95[2], 3), "]\n")
-
-# =========================================
-# Between-female correlation
-# =========================================
-# Compute female means
-df_female <- df %>%
-  group_by(id) %>%
-  summarise(
-    mean_egg_size  = mean(mean.egg.size, na.rm = TRUE),
-    mean_egg_number = mean(egg.number, na.rm = TRUE),
-    .groups = "drop"
-  )
-
-# Function for bootstrapping correlation across female means
-corr_between_fun <- function(data, indices) {
-  d <- data[indices, ]
-  cor(d$mean_egg_size, d$mean_egg_number)
-}
-
-# Run bootstrap
-set.seed(123)
-boot_between <- boot(df_female, statistic = corr_between_fun, R = 5000)
-
-# 95% CI using percentile method
-ci_between_95 <- boot.ci(boot_between, type = "perc", conf = 0.95)
-
-# Extract point estimate and CI
-r_between <- boot_between$t0
-r_between_ci95 <- ci_between_95$percent[4:5]
-
-cat("Between-female correlation (r_between) = ", round(r_between, 3),
-    ", 95% CI = [", round(r_between_ci95[1], 3), ", ", round(r_between_ci95[2], 3), "]\n")
 
 # =========================================
 # Raw phenotypic correlation: fecundity vs size
@@ -461,171 +304,148 @@ cat("Raw phenotypic correlation (r_raw) = ", round(r_raw.sci, 3),
     ", 95% CI = [", round(r_raw_ci95.sci[1], 3), ", ", round(r_raw_ci95.sci[2], 3), "]\n")
 
 # =========================================
-# Fixed-effects model
+# Multivariate model
 # =========================================
+df <- df %>%
+  mutate(
+    egg_number_within_z  = scale(egg_number_within)[,1],
+    egg_number_between_z    = scale(egg_number_between)[,1]
+  )
 
-# priors <- c(
-#   prior(normal(0, 1), class = "b", coef = "egg_number_within"),
-#   prior(normal(0, 1), class = "b", coef = "egg_number_between"),
-#   prior(normal(0, 1), class = "Intercept"),
-#   prior(exponential(1), class = "sd"),
-#   prior(exponential(1), class = "sigma")
-# )
-# 
-# fit.null <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between +
-#     (1 | id),
-#   data = df,
-#   family = gaussian(),
-#   prior = priors,
-#   save_pars = save_pars(all = TRUE),
-#   file = "data/processed/fit.null7",
-#   backend = "cmdstanr",
-#   chains = 4, cores = 4, thin = 6, iter = 4000
-# )
-# print(summary(fit.null), digits = 4)
-# fit.null <- add_criterion(fit.null, "loo", moment_match=TRUE) # best model
+df <- df %>%
+  mutate(
+    id = as.factor(id),
+    brood = as.factor(brood)
+  )
 
-fit.null <- readRDS(file = "data/processed/fit.null.rds")
+# Make "one" the reference level
+df$brood <- relevel(df$brood, ref = "one")
 
-myround(fixef(fit.null)[2,1],4)
+levels(df$brood)
 
-ran_int <- posterior_summary(fit.null, variable = "sd_id__Intercept")
-
-# =========================================
-# Standardized effects
-# =========================================
-
-post <- as_draws_df(fit.null)
-sd_y <- sd(df$mean.egg.size)
-
-sd_within  <- sd(df$egg_number_within)
-sd_between <- sd(df$egg_number_between)
-
-beta_within_std  <- post$b_egg_number_within  * sd_within  / sd_y
-beta_between_std <- post$b_egg_number_between * sd_between / sd_y
-
-std_effects_table <- data.frame(
-  Predictor = c("Egg number (within female)",
-                "Egg number (between females)"),
-  Estimate = c(mean(beta_within_std),
-               mean(beta_between_std)),
-  LCI_95 = c(quantile(beta_within_std,  0.025),
-             quantile(beta_between_std, 0.025)),
-  UCI_95 = c(quantile(beta_within_std,  0.975),
-             quantile(beta_between_std, 0.975))
+bf_number <- bf(
+  egg.number ~ brood + (1 |p| id),
+  family = negbinomial()
 )
-# saveRDS(std_effects_table, file = "data/processed/std_effects_table.rds")
+exp(-0.412)
+bf_size <- bf(
+  mean.egg.size ~ brood +
+    egg_number_within_z +
+    egg_number_between_z +
+    (1 |p| id),
+  family = gaussian()
+)
 
-# =========================================
-# Brood adjusted slope
-# =========================================
+mv_model <- bf_number + bf_size
 
-# m_wb_brood <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between +
-#     brood +
-#     (1 | id),
-#   data = df,
-#   family = gaussian(),
-#   backend = "cmdstanr",
-#   chains = 4, cores = 4,
-#   file = "data/processed/m_wb_brood",
-#   iter = 4000, warmup = 1000
-# )
-# print(summary(m_wb_brood), digits = 4)
+get_prior(mv_model, data = df)
 
-m_wb_brood <- readRDS(file = "data/processed/m_wb_brood.rds")
+priors <- c(
+  # -----------------------
+  # FIXED EFFECTS
+  # -----------------------
+  prior(normal(0, 1), class = "b", resp = "eggnumber"),
+  prior(normal(0, 1), class = "b", resp = "meaneggsize"),
+  
+  # -----------------------
+  # INTERCEPTS
+  # -----------------------
+  prior(normal(0, 5), class = "Intercept", resp = "eggnumber"),
+  prior(normal(3.5, 1), class = "Intercept", resp = "meaneggsize"),
+  
+  # -----------------------
+  # RANDOM EFFECT SDs
+  # -----------------------
+  prior(exponential(1), class = "sd", group = "id", resp = "eggnumber"),
+  prior(exponential(1), class = "sd", group = "id", resp = "meaneggsize"),
+  
+  # -----------------------
+  # RESIDUAL SD (Gaussian only)
+  # -----------------------
+  prior(exponential(1), class = "sigma", resp = "meaneggsize"),
+  
+  # -----------------------
+  # NEGATIVE BINOMIAL SHAPE
+  # -----------------------
+  prior(exponential(1), class = "shape", resp = "eggnumber"),
+  
+  # -----------------------
+  # CORRELATION BETWEEN FEMALE INTERCEPTS
+  # -----------------------
+  prior(lkj(2), class = "cor", group = "id")
+)
 
-clutch_order_within <- brms::fixef(m_wb_brood)["egg_number_within", ]
+fit_mv <- brm(
+  mv_model,
+  data = df,
+  prior = priors,
+  chains = 6,
+  cores = 4,
+  iter = 4000,
+  warmup = 1000,
+  control = list(adapt_delta = 0.95),save_pars = save_pars(all = TRUE),
+  file = "data/processed/fit_mv",
+  backend = "cmdstanr",
+  seed = 123
+)
 
-# =========================================
-# Random slopes model
-# =========================================
-# m_rs <- brm(
-#   mean.egg.size ~
-#     egg_number_within +
-#     egg_number_between +
-#     (1 + egg_number_within | id),
-#   data = df,
-#   family = gaussian(),
-#   prior = c(
-#     prior(normal(0, 0.5), class = "b"),
-#     prior(normal(0, 1), class = "Intercept"),
-#     prior(exponential(1), class = "sd"),
-#     prior(lkj(2), class = "cor")
-#   ),
-#   chains = 4,
-#   cores = 4,
-#   iter = 5000,
-#   control = list(adapt_delta = 0.99),
-#   file = "data/processed/m_rs",
-# 
-# )
-# print(summary(m_rs), digits = 4)
+print(summary(fit_mv), digits = 4)
+summary(fit_mv)$fixed
 
-m_rs <- readRDS(file = "data/processed/m_rs.rds")
+## brood effect on egg number
+fixef(fit_mv)["eggnumber_broodtwo", ]
+exp(fixef(fit_mv)["eggnumber_broodtwo", "Estimate"])
 
-ran_int.slopes <- posterior_summary(m_rs, variable = "sd_id__egg_number_within")
-ran_int.slopes.cor <- posterior_summary(m_rs, variable = "cor_id__Intercept__egg_number_within")
+## brood effect on egg size
+fixef(fit_mv)["meaneggsize_broodtwo", ]
 
+## Within-Female Trade-Off (Plasticity)
+fixef(fit_mv)["meaneggsize_egg_number_within_z", ]
 
-# # Convert brms model to draws_df
-# post <- as_draws_df(m_rs)
-# 
-# # Keep only random effects
-# post_re <- post %>%
-#   select(starts_with("r_id["))
-# 
-# # Add a draw ID
-# post_re <- post_re %>%
-#   mutate(draw = row_number())
-# post_long <- post_re %>%
-#   pivot_longer(
-#     cols = -draw,
-#     names_to = "variable",
-#     values_to = "value"
-#   ) %>%
-#   # Extract female ID and effect
-#   mutate(
-#     id = sub("r_id\\[([^,]+),.*\\]", "\\1", variable),
-#     effect = sub("r_id\\[[^,]+,(.*)\\]", "\\1", variable)
-#   )
-# post_wide <- post_long %>%
-#   pivot_wider(
-#     id_cols = c(draw, id),   # include draw so each row is unique
-#     names_from = effect,
-#     values_from = value
-#   )
-# 
-# ggplot(post_wide, aes(x = egg_number_between, y = Intercept)) +
-#   geom_point(alpha = 0.2) +
-#   labs(
-#     x = "Female-specific slope (egg_number_between)",
-#     y = "Female-specific intercept (mean egg size)"
-#   )
+## Between-Female Effect (Strategic Allocation Axis)
+fixef(fit_mv)["meaneggsize_egg_number_between_z", ]
 
-# # Posterior median + 95% credible intervals per female
-# post_summary <- post_wide %>%
-#   group_by(id) %>%
-#   summarise(
-#     Intercept = median(Intercept),
-#     Slope = median(egg_number_between),
-#     Slope_LCI = quantile(egg_number_between, 0.025),
-#     Slope_UCI = quantile(egg_number_between, 0.975)
-#   )
-# 
-# ggplot(post_summary, aes(x = Slope, y = Intercept)) +
-#   geom_point() +
-#   geom_errorbarh(aes(xmin = Slope_LCI, xmax = Slope_UCI), alpha = 0.5) +
-#   labs(
-#     x = "Female-specific slope (egg_number_between)",
-#     y = "Female-specific intercept (mean egg size)"
-#   ) +
-#   theme_classic()
+## correlation between female intercepts
+draws <- as_draws_df(fit_mv)
+int.cor <- quantile(
+     draws$cor_id__eggnumber_Intercept__meaneggsize_Intercept,
+     c(0.025, 0.5, 0.975)
+    )
+
+# egg size repeatability (gaussian)
+library(posterior)
+
+draws <- as_draws_df(fit_mv)
+
+# Female-level variance
+var_id_size <- draws$sd_id__meaneggsize_Intercept^2
+
+# Residual variance
+var_resid_size <- draws$sigma_meaneggsize^2
+
+R_size <- var_id_size / (var_id_size + var_resid_size)
+
+quantile(R_size, c(0.025, 0.5, 0.975))
+
+# egg number repeatability (negative binomial)
+
+# Female-level variance
+var_id_num <- draws$sd_id__eggnumber_Intercept^2
+
+# Shape parameter
+shape <- draws$shape_eggnumber
+
+# Predicted mean egg number
+mu_hat <- fitted(fit_mv, resp = "eggnumber")[, "Estimate"]
+mu_mean <- mean(mu_hat)
+
+# NB residual variance
+var_resid_nb <- mu_mean + (mu_mean^2 / shape)
+
+R_num <- var_id_num / (var_id_num + var_resid_nb)
+
+quantile(R_num, c(0.025, 0.5, 0.975))
+
 
 # =========================================
 # Egg size variation
@@ -637,19 +457,19 @@ earwig_egg_3 <- earwig_egg_2 %>%
                           levels = c(1, 2),        # Original numeric values
                           labels = c("one", "two"))) # New descriptive labels
 
-# egg.size.bf = bf(scale(mean.perim) ~ brood_factor + (1|a|id) + (0+brood_factor||id), sigma ~ brood_factor + (1|a|id)) # need to have (0+brood||id) in order to get sd_id_broodone and sd_id_broodtwo
-# 
-# #run the model
-# egg.size.model <- brm(egg.size.bf,
-#                       data = earwig_egg_3,
-#                       family = gaussian,
-#                       cores = 6, 
-#                       chains = 6, 
-#                       warmup = 1000,
-#                       iter = 4000,
-#                       seed = 34, #make sure to set the seed to make results reproducible
-#                       file = "data/processed/egg.size.model.rds",
-#                       control = list(adapt_delta = 0.999))
+egg.size.bf = bf(scale(mean.perim) ~ brood_factor + (1|a|id) + (0+brood_factor||id), sigma ~ brood_factor + (1|a|id)) # need to have (0+brood||id) in order to get sd_id_broodone and sd_id_broodtwo
+
+#run the model
+egg.size.model <- brm(egg.size.bf,
+                      data = earwig_egg_3,
+                      family = gaussian,
+                      cores = 6,
+                      chains = 6,
+                      warmup = 1000,
+                      iter = 4000,
+                      seed = 34, #make sure to set the seed to make results reproducible
+                      file = "data/processed/egg.size.model.rds",
+                      control = list(adapt_delta = 0.999))
 # summary(egg.size.model)
 # get_variables(egg.size.model)
 # pp_check(egg.size.model,ndraws = 100)
@@ -995,4 +815,6 @@ ggsave(p_variance, filename="figure_4.jpg", width=10.83, height=10.83, dpi=300,a
 
 
 ## ---- end
+
+
 
