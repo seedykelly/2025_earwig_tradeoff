@@ -21,7 +21,7 @@ library(flextable)
 library(rptR)
 library(modelsummary)
 library(parameters)
-
+library(cowplot)
 
 # =========================================
 # Load data
@@ -327,7 +327,7 @@ bf_number <- bf(
   egg.number ~ brood + (1 |p| id),
   family = negbinomial()
 )
-exp(-0.412)
+
 bf_size <- bf(
   mean.egg.size ~ brood +
     egg_number_within_z +
@@ -390,7 +390,6 @@ priors <- c(
 # )
 
 fit_mv <- readRDS(file = "data/processed/fit_mv.rds")
-
 print(summary(fit_mv), digits = 4)
 summary(fit_mv)$fixed
 
@@ -601,146 +600,134 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 # =========================================
 # Plots
 # =========================================
-# between-female correlation
+
+# # Within predictions
+# pred_within <- add_epred_draws(
+#   fit_mv,
+#   newdata = new_within,
+#   resp = "meaneggsize",
+#   re_formula = NA
+# ) %>%
+#   mutate(type = "Within-female")
 # 
-# df_between <- df %>%
-#   group_by(id) %>%
-#   summarise(
-#     mean_egg_number = mean(egg.number, na.rm = TRUE),
-#     mean_egg_size   = mean(mean.egg.size, na.rm = TRUE),
-#     .groups = "drop"
-#   )
+# # Between predictions
+# pred_between <- add_epred_draws(
+#   fit_mv,
+#   newdata = new_between,
+#   resp = "meaneggsize",
+#   re_formula = NA
+# ) %>%
+#   mutate(type = "Between-female")
 # 
-# p_between <- ggplot(df_between, aes(x = mean_egg_number, y = mean_egg_size)) +
-#   geom_point(size = 2) +
-#   geom_smooth(method = "lm", se = TRUE, colour="black") +
-#   labs(
-#     x = "Mean egg number per female",
-#     y = "Mean egg size per female"
+# # Combine
+# pred_all <- bind_rows(pred_within, pred_between)
+# 
+# # PANEL A — Within-female
+# p_within <- ggplot() +
+#   
+#   # Raw reaction norms
+#   geom_line(data = df,
+#             aes(x = egg_number_within_z,
+#                 y = mean.egg.size,
+#                 group = id),
+#             alpha = 0.3) +
+#   
+#   geom_point(data = df,
+#              aes(x = egg_number_within_z,
+#                  y = mean.egg.size, colour=brood),
+#              alpha = 0.5,
+#              size = 2) +
+#   
+#   # Bayesian slope only
+#   stat_summary(
+#     data =
+#       pred_within,
+#     aes(x = egg_number_within_z,
+#         y = .epred,
+#         group = 1),
+#     fun = mean,
+#     geom = "line",
+#     linewidth = 1.3,
+#     color = "black"
 #   ) +
+#   scale_color_discrete(name="Clutch order",labels = c("First", "Second")) +
 #   theme_bw() +
 #   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+#         legend.position = "inside", legend.position.inside = c(0.2, 0.8),
 #         strip.background = element_rect(fill="white"),
 #         axis.title.x = element_text(size=14,face="bold"),
 #         axis.title.y = element_text(size=14,face="bold"),
 #         axis.text.x = element_text(size=12),
-#         axis.text.y = element_text(size=12))
-# #ggsave(p_between, filename="Figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
-# 
-# # # within-female correlation with reaction norms
-# 
-# newdata_within <- tibble(
-#   egg_number_within  = seq(
-#     min(df$egg_number_within, na.rm = TRUE),
-#     max(df$egg_number_within, na.rm = TRUE),
-#     length.out = 100
-#   ),
-#   egg_number_between = 0
-# )
-# 
-# pred_within <- m_rs %>%
-#   add_epred_draws(
-#     newdata = newdata_within,
-#     re_formula = NA   # population-level only
-#   ) %>%
-#   group_by(egg_number_within) %>%
-#   summarise(
-#     mean = mean(.epred),
-#     lwr  = quantile(.epred, 0.025),
-#     upr  = quantile(.epred, 0.975),
-#     .groups = "drop"
-#   ) %>%
-#   rename(egg_n_within = egg_number_within)
-# 
-# df_within <- df %>%
-#   group_by(id) %>%
-#   mutate(
-#     egg_n_within = egg.number - mean(egg.number)
-#   ) %>%
-#   ungroup()
-# 
-# p_within <- ggplot(df_within,
-#                    aes(x = egg_n_within,
-#                        y = mean.egg.size,
-#                        group = id)) +
-#   geom_line(alpha = 0.3) +
-#   geom_point(aes(colour=brood),alpha = 0.7, size = 2) +
-# 
-#   # Posterior ribbon (population-level)
-#   geom_ribbon(
-#     data = pred_within,
-#     aes(x = egg_n_within, ymin = lwr, ymax = upr),
-#     inherit.aes = FALSE,
-#     alpha = 0.25
-#   ) +
-#   scale_color_discrete(name="Clutch order",labels = c("First", "Second")) +
-# 
-#   # Posterior mean line (population-level)
-#   geom_line(
-#     data = pred_within,
-#     aes(x = egg_n_within, y = mean),
-#     inherit.aes = FALSE,
-#     linewidth = 1
-#   ) +
-# 
+#         axis.text.y = element_text(size=12)) +
 #   labs(
 #     x = "Within-female deviation in egg number",
 #     y = "Mean egg size"
-#   ) +
-#   theme_bw() +
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-#         strip.background = element_rect(fill="white"),
-#         axis.title.x = element_text(size=14,face="bold"),
-#         axis.title.y = element_text(size=14,face="bold"),
-#         axis.text.x = element_text(size=12),
-#         axis.text.y = element_text(size=12))
-# #ggsave(p_within, filename="Figure_3.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
-# 
-# # # residual correlation plot
-# # 
-# # # m_mv = your multivariate brms model with responses: mean.egg.size and egg.number
-# 
-# # Get posterior residuals (array: draws x observations x response)
-# resid_array <- residuals(m_mv, summary = FALSE)  # do NOT summarize yet
-# 
-# # Compute posterior mean residual for each observation
-# resid_mean <- apply(resid_array, c(2, 3), mean)  # dims: obs x response
-# 
-# # Convert to data frame, combine with original df
-# df_resid <- df %>%
-#   mutate(
-#     resid_egg_size   = as.numeric(resid_mean[, "meaneggsize"]),
-#     resid_egg_number = as.numeric(resid_mean[, "eggnumber"])
 #   )
 # 
-# # Posterior draws of the residual correlation
-# rescor_draws <- posterior_samples(m_mv, pars = "rescor__meaneggsize__eggnumber")
-# 
-# # Extract numeric vector
-# rescor_vec <- rescor_draws[[1]]
-# 
-# # Summarize posterior: mean + 95% credible interval
-# rescor_summary <- c(
-#   mean = mean(rescor_vec),
-#   lwr  = quantile(rescor_vec, 0.025),
-#   upr  = quantile(rescor_vec, 0.975)
-# )
-# 
-# p_resid <- ggplot(df_resid, aes(x = resid_egg_number, y = resid_egg_size)) +
-#   geom_point(alpha = 0.5, size = 2) +  # residual points
-#   geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 1) +  # trend line
-#   labs(
-#     x = "Residual egg number",
-#     y = "Residual egg size"
+# # PANEL B — Between-female
+# p_between <- ggplot() +
+#   
+#   # Female means (raw intuition)
+#   geom_point(data = female_means,
+#              aes(x = scale(mean_eggnumber),
+#                  y = mean_eggsize),
+#              size = 3) +
+#   
+#   # Bayesian slope only
+#   stat_summary(
+#     data = pred_between,
+#     aes(x = egg_number_between_z,
+#         y = .epred,
+#         group = 1),
+#     fun = mean,
+#     geom = "line",
+#     linewidth = 1.3,
+#     color = "black"
 #   ) +
+#   
 #   theme_bw() +
 #   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 #         strip.background = element_rect(fill="white"),
 #         axis.title.x = element_text(size=14,face="bold"),
 #         axis.title.y = element_text(size=14,face="bold"),
 #         axis.text.x = element_text(size=12),
-#         axis.text.y = element_text(size=12))
-# #ggsave(p_resid, filename="figure_2.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+#         axis.text.y = element_text(size=12)) +
+#   labs(
+#     x = "Between-female deviation in egg number (z)",
+#     y = "Mean egg size"
+#   )
+#   
+# 
+# # Combine
+# figure_1<-plot_grid(p_within, p_between, ncol=2, nrow=1,
+#                     labels = c('(a)', '(b)'))
+# ggsave(figure_1, filename="figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")    
+# 
+# 
+# egg_seq <- seq(-2, 2, length.out = 100)
+# 
+# # Within-female grid
+# new_within <- data.frame(
+#   brood = "one",
+#   egg_number_within_z = egg_seq,
+#   egg_number_between_z = 0
+# )
+# 
+# # Between-female grid
+# new_between <- data.frame(
+#   brood = "one",
+#   egg_number_within_z = 0,
+#   egg_number_between_z = egg_seq
+# )
+# pred_within <- add_epred_draws(
+#   fit_mv,
+#   newdata = new_within,
+#   resp = "meaneggsize",
+#   re_formula = NA
+# )
+# 
+
+
 # 
 # post_alt <- as_draws_df(egg.size.model.alt)
 # 
@@ -801,6 +788,4 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 
 
 ## ---- end
-
-
 

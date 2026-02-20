@@ -42,16 +42,18 @@ knitr::read_chunk('scripts/earwig_tradeoff.R')
 #| message: false
 #| warning: false
 #| label: tbl-one
-#| tbl-cap: Posterior medians and 95% credible intervals from a multivariate Bayesian mixed model predicting egg size (Gaussian) and egg number (Poisson) as a function of clutch (Brood 2 relative to Brood 1), with random intercepts for female ID (here and elsewhere clutch is synonomous with brood).
+#| tbl-cap: Posterior summaries from the multivariate Bayesian mixed-effects model examining the relationship between egg number and mean egg size. The model jointly estimated a negative binomial model for egg number and a Gaussian model for egg size, including brood effects and partitioning egg number into within- and between-female components. Reported values are posterior medians and 95% credible intervals (CrI). Random effects represent among-female (ID-level) variation, and the correlation term describes the association between female intercepts for egg number and egg size. The dispersion parameter refers to the negative binomial shape parameter.
 
 # -----------------------------
 # 1. FIXED EFFECTS (Mean model)
 # -----------------------------
 
-fixed_tab <- m_mv_2 |>
+fixed_tab <- fit_mv |>
   spread_draws(
     b_meaneggsize_Intercept,
     b_meaneggsize_broodtwo,
+    b_meaneggsize_egg_number_within_z,
+    b_meaneggsize_egg_number_between_z,
     b_eggnumber_Intercept,
     b_eggnumber_broodtwo
   ) |>
@@ -65,8 +67,14 @@ fixed_tab <- m_mv_2 |>
     Parameter = recode(term,
       b_meaneggsize_Intercept = "Egg size: Intercept (Brood 1)",
       b_meaneggsize_broodtwo = "Egg size: Brood 2 − Brood 1",
-      b_eggnumber_Intercept = "Egg number: Intercept (Brood 1)",
-      b_eggnumber_broodtwo = "Egg number: Brood 2 − Brood 1"
+      b_meaneggsize_egg_number_within_z =
+        "Egg size: Within-female deviation in egg number (z)",
+      b_meaneggsize_egg_number_between_z =
+        "Egg size: Between-female deviation in egg number (z)",
+      b_eggnumber_Intercept =
+        "Egg number: Intercept (Brood 1, log scale)",
+      b_eggnumber_broodtwo =
+        "Egg number: Brood 2 − Brood 1 (log scale)"
     ),
     Estimate = round(value, 3),
     `Lower 95% CrI` = round(.lower, 3),
@@ -75,13 +83,14 @@ fixed_tab <- m_mv_2 |>
   select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
 
 # -----------------------------
-# 2. RANDOM INTERCEPTS (ID level)
+# 2. RANDOM EFFECTS (Female ID)
 # -----------------------------
 
-random_tab <- m_mv_2 |>
+random_tab <- fit_mv |>
   spread_draws(
     sd_id__meaneggsize_Intercept,
-    sd_id__eggnumber_Intercept
+    sd_id__eggnumber_Intercept,
+    cor_id__eggnumber_Intercept__meaneggsize_Intercept
   ) |>
   pivot_longer(cols = -c(.chain, .iteration, .draw),
                names_to = "term",
@@ -91,8 +100,12 @@ random_tab <- m_mv_2 |>
   ungroup() |>
   mutate(
     Parameter = recode(term,
-      sd_id__meaneggsize_Intercept = "SD (Egg size | Female ID)",
-      sd_id__eggnumber_Intercept = "SD (Egg number | Female ID)"
+      sd_id__meaneggsize_Intercept =
+        "SD (Egg size | Female ID)",
+      sd_id__eggnumber_Intercept =
+        "SD (Egg number | Female ID)",
+      cor_id__meaneggsize_Intercept__eggnumber_Intercept =
+        "Correlation (Egg size, Egg number | Female ID)"
     ),
     Estimate = round(value, 3),
     `Lower 95% CrI` = round(.lower, 3),
@@ -101,10 +114,10 @@ random_tab <- m_mv_2 |>
   select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
 
 # -----------------------------
-# 3. RESIDUAL SD (Gaussian only)
+# 3a. RESIDUAL SD (Egg size)
 # -----------------------------
 
-sigma_tab <- m_mv_2 |>
+sigma_tab <- fit_mv |>
   spread_draws(sigma_meaneggsize) |>
   median_qi(sigma_meaneggsize, .width = 0.95) |>
   mutate(
@@ -116,395 +129,29 @@ sigma_tab <- m_mv_2 |>
   select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
 
 # -----------------------------
-# 4. COMBINE
+# 3b. Negative Binomial Shape
+# -----------------------------
+
+shape_tab <- fit_mv |>
+  spread_draws(shape_eggnumber) |>
+  median_qi(shape_eggnumber, .width = 0.95) |>
+  mutate(
+    Parameter = "Dispersion (Egg number | NegBin shape)",
+    Estimate = round(shape_eggnumber, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+# -----------------------------
+# 4. COMBINE ALL TABLES
 # -----------------------------
 
 final_tab <- bind_rows(
   fixed_tab,
   random_tab,
-  sigma_tab
-)
-
-flextable(final_tab) |>
-  autofit()
-```
-
-\newpage
-
-```{r}
-#| echo: false
-#| results: asis
-#| warning: FALSE
-#| label: tbl-two
-#| tbl-cap: Posterior medians and 95% credible intervals from a multivariate Gaussian mixed model jointly estimating egg size and egg number. The model includes random intercepts for female ID and estimates residual correlation between traits.
-
-# -----------------------------
-# 1. FIXED EFFECTS (INTERCEPTS)
-# -----------------------------
-
-fixed_tab <- m_mv |>
-  spread_draws(
-    b_meaneggsize_Intercept,
-    b_eggnumber_Intercept
-  ) |>
-  pivot_longer(cols = -c(.chain, .iteration, .draw),
-               names_to = "term",
-               values_to = "value") |>
-  group_by(term) |>
-  median_qi(value, .width = 0.95) |>
-  ungroup() |>
-  mutate(
-    Parameter = recode(term,
-      b_meaneggsize_Intercept = "Egg size: Intercept",
-      b_eggnumber_Intercept = "Egg number: Intercept"
-    ),
-    Estimate = round(value, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-# -----------------------------
-# 2. RANDOM INTERCEPT SDs
-# -----------------------------
-
-random_tab <- m_mv |>
-  spread_draws(
-    sd_id__meaneggsize_Intercept,
-    sd_id__eggnumber_Intercept
-  ) |>
-  pivot_longer(cols = -c(.chain, .iteration, .draw),
-               names_to = "term",
-               values_to = "value") |>
-  group_by(term) |>
-  median_qi(value, .width = 0.95) |>
-  ungroup() |>
-  mutate(
-    Parameter = recode(term,
-      sd_id__meaneggsize_Intercept = "SD (Egg size | Female ID)",
-      sd_id__eggnumber_Intercept = "SD (Egg number | Female ID)"
-    ),
-    Estimate = round(value, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-# -----------------------------
-# 3. RESIDUAL STRUCTURE
-# -----------------------------
-
-resid_tab <- m_mv |>
-  spread_draws(
-    sigma_meaneggsize,
-    sigma_eggnumber,
-    rescor__meaneggsize__eggnumber
-  ) |>
-  pivot_longer(cols = -c(.chain, .iteration, .draw),
-               names_to = "term",
-               values_to = "value") |>
-  group_by(term) |>
-  median_qi(value, .width = 0.95) |>
-  ungroup() |>
-  mutate(
-    Parameter = recode(term,
-      sigma_meaneggsize = "Residual SD (Egg size)",
-      sigma_eggnumber = "Residual SD (Egg number)",
-      rescor_meaneggsize_eggnumber =
-        "Residual correlation (Egg size, Egg number)"
-    ),
-    Estimate = round(value, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-# -----------------------------
-# 4. COMBINE
-# -----------------------------
-
-final_tab <- bind_rows(
-  fixed_tab,
-  random_tab,
-  resid_tab
-)
-
-flextable(final_tab) |>
-  autofit()
-```
-
-\newpage
-
-```{r}
-#| echo: false
-#| results: asis
-#| warning: FALSE
-#| label: tbl-three
-#| tbl-cap: Posterior medians and 95% credible intervals from a Bayesian mixed model predicting mean egg size. The model included within- and between-female egg number effects, a random intercept for female ID, and Gaussian residual variance.
-
-# -----------------------------
-# 1. FIXED EFFECTS
-# -----------------------------
-
-fixed_tab <- fit.null |>
-  spread_draws(b_Intercept,
-               b_egg_number_within,
-               b_egg_number_between) |>
-  pivot_longer(cols = -c(.chain, .iteration, .draw),
-               names_to = "term",
-               values_to = "value") |>
-  group_by(term) |>
-  median_qi(value, .width = 0.95) |>
-  ungroup() |>
-  mutate(
-    Parameter = recode(term,
-      b_Intercept = "Intercept",
-      b_egg_number_within = "Egg number (within female)",
-      b_egg_number_between = "Egg number (between female)"
-    ),
-    Estimate = round(value, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 2. RANDOM INTERCEPT
-# -----------------------------
-
-random_tab <- fit.null |>
-  spread_draws(sd_id__Intercept) |>
-  median_qi(sd_id__Intercept, .width = 0.95) |>
-  mutate(
-    Parameter = "SD (Intercept | Female ID)",
-    Estimate = round(sd_id__Intercept, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 3. RESIDUAL VARIANCE
-# -----------------------------
-
-sigma_tab <- fit.null |>
-  spread_draws(sigma) |>
-  median_qi(sigma, .width = 0.95) |>
-  mutate(
-    Parameter = "Residual SD (sigma)",
-    Estimate = round(sigma, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 4. COMBINE EVERYTHING
-# -----------------------------
-
-final_tab <- bind_rows(
-  fixed_tab,
-  random_tab,
-  sigma_tab
-)
-
-final_ft <- flextable(final_tab) |>
-  set_caption("Table S1. Posterior medians and 95% credible intervals from a Bayesian mixed model predicting mean egg size. The model included within- and between-female egg number effects, a random intercept for female ID, and Gaussian residual variance.") |>
-  autofit()
-
-final_ft
-``` 
-
-\newpage
-
-```{r}
-#| echo: false
-#| results: asis
-#| warning: FALSE
-#| label: tbl-four
-#| tbl-cap: Posterior medians and 95% credible intervals from a Bayesian mixed model predicting mean egg size as a function of within- and between-female egg number and brood (Brood 2 relative to Brood 1), with a random intercept for female ID.
-
-# -----------------------------
-# 1. FIXED EFFECTS
-# -----------------------------
-
-fixed_tab <- m_wb_brood |>
-  spread_draws(
-    b_Intercept,
-    b_egg_number_within,
-    b_egg_number_between,
-    b_broodtwo   # assumes brood levels are "one" (ref) and "two"
-  ) |>
-  pivot_longer(
-    cols = -c(.chain, .iteration, .draw),
-    names_to = "term",
-    values_to = "value"
-  ) |>
-  group_by(term) |>
-  median_qi(value, .width = 0.95) |>
-  ungroup() |>
-  mutate(
-    Parameter = recode(term,
-      b_Intercept = "Intercept (Brood 1)",
-      b_egg_number_within = "Egg number (within female)",
-      b_egg_number_between = "Egg number (between female)",
-      b_broodtwo = "Brood 2 − Brood 1"
-    ),
-    Estimate = round(value, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 2. RANDOM INTERCEPT (ID)
-# -----------------------------
-
-random_tab <- m_wb_brood |>
-  spread_draws(sd_id__Intercept) |>
-  select(-.chain, -.iteration, -.draw) |>
-  median_qi(sd_id__Intercept, .width = 0.95) |>
-  mutate(
-    Parameter = "SD (Intercept | Female ID)",
-    Estimate = round(sd_id__Intercept, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 3. RESIDUAL SD
-# -----------------------------
-
-sigma_tab <- m_wb_brood |>
-  spread_draws(sigma) |>
-  select(-.chain, -.iteration, -.draw) |>
-  median_qi(sigma, .width = 0.95) |>
-  mutate(
-    Parameter = "Residual SD (sigma)",
-    Estimate = round(sigma, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 4. COMBINE INTO ONE TABLE
-# -----------------------------
-
-final_tab <- bind_rows(
-  fixed_tab,
-  random_tab,
-  sigma_tab
-)
-
-flextable(final_tab) |>
-  autofit()
-```
-
-\newpage
-
-```{r}
-#| echo: false
-#| results: asis
-#| warning: FALSE
-#| label: tbl-five
-#| tbl-cap: Posterior medians and 95% credible intervals from a Bayesian mixed model predicting mean egg size as a function of within- and between-female egg number. The model includes random intercepts and random within-female slopes for egg number at the female level.
-
-# -----------------------------
-# 1. FIXED EFFECTS
-# -----------------------------
-
-fixed_tab <- m_rs |>
-  spread_draws(
-    b_Intercept,
-    b_egg_number_within,
-    b_egg_number_between
-  ) |>
-  pivot_longer(
-    cols = -c(.chain, .iteration, .draw),
-    names_to = "term",
-    values_to = "value"
-  ) |>
-  group_by(term) |>
-  median_qi(value, .width = 0.95) |>
-  ungroup() |>
-  mutate(
-    Parameter = recode(term,
-      b_Intercept = "Intercept",
-      b_egg_number_within = "Egg number (within female)",
-      b_egg_number_between = "Egg number (between female)"
-    ),
-    Estimate = round(value, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 2. RANDOM EFFECTS (ID LEVEL)
-# -----------------------------
-
-random_tab <- m_rs |>
-  spread_draws(
-    sd_id__Intercept,
-    sd_id__egg_number_within,
-    cor_id__Intercept__egg_number_within
-  ) |>
-  pivot_longer(
-    cols = -c(.chain, .iteration, .draw),
-    names_to = "term",
-    values_to = "value"
-  ) |>
-  group_by(term) |>
-  median_qi(value, .width = 0.95) |>
-  ungroup() |>
-  mutate(
-    Parameter = recode(term,
-      sd_id__Intercept = "SD (Intercept | Female ID)",
-      sd_id__egg_number_within = "SD (Within slope | Female ID)",
-      cor_id__Intercept__egg_number_within =
-        "Correlation (Intercept, Within slope | Female ID)"
-    ),
-    Estimate = round(value, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 3. RESIDUAL SD
-# -----------------------------
-
-sigma_tab <- m_rs |>
-  spread_draws(sigma) |>
-  select(-.chain, -.iteration, -.draw) |>
-  median_qi(sigma, .width = 0.95) |>
-  mutate(
-    Parameter = "Residual SD (sigma)",
-    Estimate = round(sigma, 3),
-    `Lower 95% CrI` = round(.lower, 3),
-    `Upper 95% CrI` = round(.upper, 3)
-  ) |>
-  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
-
-
-# -----------------------------
-# 4. COMBINE INTO ONE TABLE
-# -----------------------------
-
-final_tab <- bind_rows(
-  fixed_tab,
-  random_tab,
-  sigma_tab
+  sigma_tab,
+  shape_tab
 )
 
 flextable(final_tab) |>
