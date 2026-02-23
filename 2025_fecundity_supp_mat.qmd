@@ -37,6 +37,179 @@ knitr::read_chunk('scripts/earwig_tradeoff.R')
 
 \newpage
 
+## Within–between multivariate model
+
+To partition covariance arising from within-female plasticity from covariance attributable to consistent among-female differences, I applied the within–between decomposition of can de Pol and Wright [@vandepol2009]. Although mean-centering can impose assumptions about underlying biological processes [@westneat2020], these assumptions are appropriate here because the aim was to distinguish plastic allocation within females from persistent differences among females.
+
+Let egg number for female $i$ in brood $j$ be denoted $N_{ij}$. Egg number was decomposed as
+
+$$
+N_{ij} = \bar{N}_i + (N_{ij} - \bar{N}_i)
+$$ {#eq-decomposition}
+
+The between- and within-female components were defined as
+
+$$
+N_i^{B} = \bar{N}_i - \bar{N}
+$$ {#eq-between}
+
+$$
+N_{ij}^{W} = N_{ij} - \bar{N}_i
+$$ {#eq-within}
+
+### Egg number submodel
+
+Egg number was modelled using a negative binomial distribution with a log link:
+
+$$
+N_{ij} \sim \mathrm{NegBinomial}(\mu_{ij}, \theta)
+$$ {#eq-nb_dist}
+
+$$
+\log(\mu_{ij}) =
+\beta_{0}^{N}
++ \beta_{1}^{N}\mathrm{Brood}_{ij}
++ u_{0i}^{N}
+$$ {#eq-nb_link}
+
+where
+
+$$
+u_{0i}^{N} \sim \mathcal{N}(0, \sigma_{N}^{2})
+$$ {#eq-nb_random}
+
+### Mean egg size submodel
+
+Mean egg size was modelled as
+
+$$
+S_{ij} \sim \mathcal{N}(\mu_{ij}^{S}, \sigma_{S}^{2})
+$$ {#eq-gauss_dist}
+
+$$
+\mu_{ij}^{S} =
+\beta_{0}^{S}
++ \beta_{1}^{S}\mathrm{Brood}_{ij}
++ \beta_{W} N_{ij}^{W}
++ \beta_{B} N_{i}^{B}
++ u_{0i}^{S}
+$$ {#eq-gauss_link}
+
+with
+
+$$
+u_{0i}^{S} \sim \mathcal{N}(0, \sigma_{S,id}^{2})
+$$ {#eq-gauss_random}
+
+### Multivariate structure
+
+The two submodels were fit jointly:
+
+$$
+\begin{pmatrix}
+u_{0i}^{N} \\
+u_{0i}^{S}
+\end{pmatrix}
+\sim
+\mathcal{MVN}
+\left(
+\begin{pmatrix}
+0 \\
+0
+\end{pmatrix},
+\Sigma
+\right)
+$$ {#eq-mvn}
+
+where
+
+$$
+\Sigma =
+\begin{pmatrix}
+\sigma_{N}^{2} & \sigma_{NS} \\
+\sigma_{NS} & \sigma_{S,id}^{2}
+\end{pmatrix}
+$$ {#eq-sigma_matrix}
+
+The intercept correlation is
+
+$$
+\rho_{NS}
+=
+\frac{\sigma_{NS}}
+{\sqrt{\sigma_{N}^{2} \sigma_{S,id}^{2}}}
+$$ {#eq-intercept_corr}
+
+## Relationship between model parameters and total phenotypic covariance
+
+Total phenotypic covariance can be partitioned as
+
+$$
+\mathrm{Cov}_{\text{total}}
+=
+\mathrm{Cov}_{\text{within}}
++
+\mathrm{Cov}_{\text{among}}
+$$ {#eq-cov_partition}
+
+### Within-female covariance
+
+$$
+\mathrm{Cov}_{\text{within}}
+=
+\beta_W \, \mathrm{Var}(N_{ij}^{W})
+$$ {#eq-cov_within}
+
+### Among-female covariance
+
+$$
+\mathrm{Cov}_{\text{among, slope}}
+=
+\beta_B \, \mathrm{Var}(N_i^{B})
+$$ {#eq-cov_among_slope}
+
+$$
+\mathrm{Cov}_{\text{among, intercept}}
+=
+\sigma_{NS}
+$$ {#eq-cov_among_intercept}
+
+Total among-female covariance is therefore
+
+$$
+\mathrm{Cov}_{\text{among}}
+=
+\beta_B \, \mathrm{Var}(N_i^{B})
++
+\sigma_{NS}
+$$ {#eq-cov_among_total}
+
+### Total phenotypic covariance
+
+Combining components:
+
+$$
+\mathrm{Cov}_{\text{total}}
+=
+\beta_W \, \mathrm{Var}(N_{ij}^{W})
++
+\beta_B \, \mathrm{Var}(N_i^{B})
++
+\sigma_{NS}
+$$ {#eq-cov_total_expanded}
+
+The intercept correlation is
+
+$$
+\rho_{NS}
+=
+\frac{\sigma_{NS}}
+{\sqrt{\sigma_N^{2} \sigma_{S,id}^{2}}}
+$$ {#eq-rho_definition}
+
+\newpage
+
+::: {.landscape}
 ```{r}
 #| echo: false
 #| message: false
@@ -157,14 +330,14 @@ final_tab <- bind_rows(
 flextable(final_tab) |>
   autofit()
 ```
+:::
 
-\newpage
 
 ```{r}
 #| echo: false
 #| results: asis
 #| warning: FALSE
-#| label: tbl-six
+#| label: tbl-two
 #| tbl-cap: Posterior medians and 95% credible intervals from a Bayesian mixed model of scaled egg perimeter, including clutch-specific means, clutch-specific female-level random effects, and clutch-specific residual variance.
 
 # -----------------------------
@@ -276,3 +449,10 @@ flextable(final_tab) |>
   autofit()
 ```
 
+
+\newpage
+
+# References {.unnumbered}
+
+::: {#refs}
+:::

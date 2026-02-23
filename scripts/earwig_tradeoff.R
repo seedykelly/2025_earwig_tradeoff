@@ -387,19 +387,19 @@ priors <- c(
   prior(lkj(2), class = "cor", group = "id")
 )
 
-# fit_mv <- brm(
-#   mv_model,
-#   data = df,
-#   prior = priors,
-#   chains = 6,
-#   cores = 4,
-#   iter = 4000,
-#   warmup = 1000,
-#   control = list(adapt_delta = 0.95),save_pars = save_pars(all = TRUE),
-#   file = "data/processed/fit_mv",
-#   backend = "cmdstanr",
-#   seed = 123
-# )
+fit_mv <- brm(
+  mv_model,
+  data = df,
+  prior = priors,
+  chains = 6,
+  cores = 4,
+  iter = 4000,
+  warmup = 1000,
+  control = list(adapt_delta = 0.95),save_pars = save_pars(all = TRUE),
+  file = "data/processed/fit_mv1",
+  backend = "cmdstanr",
+  seed = 123
+)
 
 fit_mv <- readRDS(file = "data/processed/fit_mv.rds")
 print(summary(fit_mv), digits = 4)
@@ -450,64 +450,21 @@ CI_R
 # Egg size variation
 # =========================================
 
-# earwig_egg_3 <- earwig_egg_2 %>%
-#   mutate(
-#    brood_factor = factor(brood,
-#                           levels = c(1, 2),        # Original numeric values
-#                           labels = c("one", "two"))) # New descriptive labels
-# 
-# egg.size.bf = bf(scale(mean.perim) ~ brood_factor + (1|a|id) + (0+brood_factor||id), sigma ~ brood_factor + (1|a|id)) # need to have (0+brood||id) in order to get sd_id_broodone and sd_id_broodtwo
-
-# egg.size.model <- brm(egg.size.bf,
-#                       data = earwig_egg_3,
-#                       family = gaussian,
-#                       cores = 6,
-#                       chains = 6,
-#                       warmup = 1000,
-#                       iter = 4000,
-#                       seed = 34, #make sure to set the seed to make results reproducible
-#                       file = "data/processed/egg.size.model.rds",
-#                       control = list(adapt_delta = 0.999))
-# summary(egg.size.model)
-# get_variables(egg.size.model)
-# pp_check(egg.size.model,ndraws = 100)
-# 
-# post <- as_draws_df(egg.size.model)
-# 
-# ### between
-# # Between-female SDs
-# sd_int  <- post$sd_id__Intercept
-# sd_b2   <- post$sd_id__brood_factortwo
-# 
-# # Convert to variance
-# var_B1 <- sd_int^2
-# var_B2 <- sd_int^2 + sd_b2^2
-# 
-# # Summaries
-# summary_B1 <- quantile(var_B1, probs = c(.025, .5, .975))
-# summary_B2 <- quantile(var_B2, probs = c(.025, .5, .975))
-# 
-# summary_B1
-# summary_B2
-# 
-# diff_between <- var_B2 - var_B1
-# 
-# quantile(diff_between, probs = c(.025, .5, .975))
-# mean(diff_between > 0)  # posterior probability brood2 > brood1
-
-# # brood 1
-# Median = 0.15
-# 95% CI = [0.0006, 0.46]
-# 
-# # brood 2
-# Median = 0.63
-# 95% CI = [0.42, 1.02]
-# Difference (B2 − B1):
-# Median = 0.48
-# 95% CI = [0.20, 0.87]
-# Posterior probability > 0 = 1.00
-
 # alternative model
+
+priors <- c(
+  # Mean model
+  prior(normal(0, 0.5), class = "Intercept"),
+  prior(normal(0, 0.5), class = "b"),
+  
+  # Random slopes
+  prior(exponential(2), class = "sd"),
+  prior(lkj(2), class = "cor"),
+  
+  # Residual model
+  prior(normal(0, 0.5), class = "Intercept", dpar = "sigma"),
+  prior(normal(0, 0.5), class = "b", dpar = "sigma")
+)
  
 # egg.size.bf.alt <- bf(
 #   scale(mean.perim) ~ brood_factor + (0 + brood_factor | id),
@@ -520,14 +477,15 @@ CI_R
 #   family = gaussian(),
 #   chains = 6,
 #   cores = 6,
+#   prior = priors,
 #   iter = 4000,
 #   warmup = 1000,
-#   file = "data/processed/egg.size.model2.rds",
+#   file = "data/processed/egg.size.model.rds",
 #   control = list(adapt_delta = 0.999),
 #   seed = 34
 # )
 
-egg.size.model.alt <- readRDS(file = "data/processed/egg.size.model2.rds")
+egg.size.model.alt <- readRDS(file = "data/processed/egg.size.model.rds")
 
 # between-female
 post_alt <- as_draws_df(egg.size.model.alt)
@@ -636,21 +594,20 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 # 
 # # PANEL A — Within-female
 # p_within <- ggplot() +
-#   
+# 
 #   # Raw reaction norms
 #   geom_line(data = df,
 #             aes(x = egg_number_within_z,
 #                 y = mean.egg.size,
 #                 group = id),
 #             alpha = 0.3) +
-#   
+# 
 #   geom_point(data = df,
 #              aes(x = egg_number_within_z,
-#                  y = mean.egg.size, colour=brood),
-#              alpha = 0.5,
-#              size = 2) +
-#   
-#   # Bayesian slope only
+#                  y = mean.egg.size, shape=brood),
+#              size = 3, colour="black") +
+# 
+#     # Bayesian slope only
 #   stat_summary(
 #     data =
 #       pred_within,
@@ -662,7 +619,7 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 #     linewidth = 1.3,
 #     color = "black"
 #   ) +
-#   scale_color_discrete(name="Clutch order",labels = c("First", "Second")) +
+#   scale_shape_manual(name="Clutch order",labels = c("First", "Second"),values = c(1, 16)) +
 #   theme_bw() +
 #   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 #         legend.position = "inside", legend.position.inside = c(0.2, 0.8),
@@ -678,13 +635,13 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 # 
 # # PANEL B — Between-female
 # p_between <- ggplot() +
-#   
+# 
 #   # Female means (raw intuition)
 #   geom_point(data = female_means,
 #              aes(x = scale(mean_eggnumber),
 #                  y = mean_eggsize),
 #              size = 3) +
-#   
+# 
 #   # Bayesian slope only
 #   stat_summary(
 #     data = pred_between,
@@ -696,7 +653,7 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 #     linewidth = 1.3,
 #     color = "black"
 #   ) +
-#   
+# 
 #   theme_bw() +
 #   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 #         strip.background = element_rect(fill="white"),
@@ -705,16 +662,16 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 #         axis.text.x = element_text(size=12),
 #         axis.text.y = element_text(size=12)) +
 #   labs(
-#     x = "Between-female deviation in egg number (z)",
+#     x = "Between-female deviation in egg number",
 #     y = "Mean egg size"
 #   )
-#   
+# 
 # 
 # # Combine
 # figure_1<-plot_grid(p_within, p_between, ncol=2, nrow=1,
 #                     labels = c('(a)', '(b)'))
-# ggsave(figure_1, filename="figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")    
-# 
+# ggsave(figure_1, filename="figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+
 # 
 # egg_seq <- seq(-2, 2, length.out = 100)
 # 
