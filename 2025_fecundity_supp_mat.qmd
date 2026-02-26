@@ -25,7 +25,7 @@ format:
     toc: false
     reference-doc: word-style-template.docx
 bibliography: Bibliography.bib
-csl: evolution.csl
+csl: current-zoology.csl
 ---
 
 ```{r echo=FALSE}
@@ -225,8 +225,6 @@ bf_size <- bf(
 
 mv_model <- bf_number + bf_size
 ```
-
-\newpage
 
 ::: {.landscape}
 ```{r}
