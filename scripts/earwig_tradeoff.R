@@ -119,6 +119,44 @@ Mi_hat<-(earwig_body_2$mean.mass)*(L0/earwig_body_2$mean.pronotum)^b.mass
 earwig_body_2$Mi_hat <- Mi_hat
 
 # =========================================
+# Egg size repeatability
+# =========================================
+
+# egg perimeter
+# make wide egg data long
+# data_long <- gather(earwig_egg, perimeter, measurement, perim:perim3, factor_key=TRUE)
+# data_long
+# data_long$brood <- as.numeric(data_long$brood)
+# data_long$num <- as.factor(data_long$num)
+# data_long$id <- as.factor(data_long$id)
+
+# analyze Rpt for each brood separately
+# data_long_2 <- data_long %>%
+#   unite(peregg, c("num", "id"))
+# 
+# data_long_3 <- data_long_2 %>%
+#   filter(brood==1)
+# 
+# rep3 <- rpt(measurement ~ 1 +  (1| peregg), grname = c("peregg"),
+#             data = data_long_3, datatype = "Gaussian", nboot = 1000, npermut = 0)
+# saveRDS(rep3, file = "data/processed/rep3.rds")
+rep3 <- readRDS(file = "data/processed/rep3.rds")
+
+# data_long_4 <- data_long_2 %>%
+#   filter(brood==2)
+# 
+# rep4 <- rpt(measurement ~ 1 +  (1| peregg), grname = c("peregg"),
+#             data = data_long_4, datatype = "Gaussian", nboot = 1000, npermut = 0)
+# saveRDS(rep4, file = "data/processed/rep4.rds")
+rep4 <- readRDS(file = "data/processed/rep4.rds")
+
+# calculate average egg perimeter
+earwig_egg_2 <- earwig_egg %>%
+  rowwise() %>%
+  mutate(mean.perim = mean(c_across(perim:perim3))) %>%
+  ungroup()
+
+# =========================================
 # Final dataset
 # =========================================
 # total.data <- earwig_egg_2 %>%
@@ -141,7 +179,7 @@ earwig_body_2$Mi_hat <- Mi_hat
 
 # saveRDS(df, file = "data/processed/df.rds")
 df <- readRDS(file = "data/processed/df.rds")
-write.csv(df, file = "earwig_data.csv", row.names = FALSE)
+#write.csv(df, file = "earwig_data.csv", row.names = FALSE)
 
 # =========================================
 # Summary stats
@@ -544,8 +582,6 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 # Plots
 # =========================================
 
-library(dplyr)
-
 df <- df %>%
   group_by(id) %>%
   mutate(
@@ -617,7 +653,7 @@ p_within <- ggplot() +
   geom_point(data = df,
              aes(x = egg_number_within_z,
                  y = mean.egg.size, shape=brood),
-             size = 3, colour="black") +
+             size = 3, colour="blue") +
 
     # Bayesian slope only
   stat_summary(
@@ -651,7 +687,7 @@ p_between <- ggplot() +
   # Female means (raw intuition)
   geom_point(data = female_means,
              aes(x = scale(mean_eggnumber),
-                 y = mean_eggsize),
+                 y = mean_eggsize), colour = "red",
              size = 3) +
 
   # Bayesian slope only
@@ -685,6 +721,7 @@ figure_1 <- plot_grid(p_within, p_between, ncol=2, nrow=1,
 ggsave(figure_1, filename="figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
 
 
+# figure 2
 egg_seq <- seq(-2, 2, length.out = 100)
 
 # # Within-female grid
@@ -739,7 +776,7 @@ df_plot <- bind_rows(df_between, df_within)
 p_variance <- ggplot(df_plot, aes(x = brood, y = variance)) +
 
   # posterior draws as semi-transparent dots
-  stat_dotsinterval(slab_fill="darkgrey", slab_color="darkgrey", point_interval = median_qi,
+  stat_dotsinterval(slab_fill="orange", slab_color="orange", point_interval = median_qi,
                     .width = 0.95, quantiles=100) +
 
   # median + 95% credible interval
