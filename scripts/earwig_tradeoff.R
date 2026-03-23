@@ -119,44 +119,6 @@ Mi_hat<-(earwig_body_2$mean.mass)*(L0/earwig_body_2$mean.pronotum)^b.mass
 earwig_body_2$Mi_hat <- Mi_hat
 
 # =========================================
-# Egg size repeatability
-# =========================================
-
-# egg perimeter
-# make wide egg data long
-# data_long <- gather(earwig_egg, perimeter, measurement, perim:perim3, factor_key=TRUE)
-# data_long
-# data_long$brood <- as.numeric(data_long$brood)
-# data_long$num <- as.factor(data_long$num)
-# data_long$id <- as.factor(data_long$id)
-
-# analyze Rpt for each brood separately
-# data_long_2 <- data_long %>%
-#   unite(peregg, c("num", "id"))
-# 
-# data_long_3 <- data_long_2 %>%
-#   filter(brood==1)
-# 
-# rep3 <- rpt(measurement ~ 1 +  (1| peregg), grname = c("peregg"),
-#             data = data_long_3, datatype = "Gaussian", nboot = 1000, npermut = 0)
-# saveRDS(rep3, file = "data/processed/rep3.rds")
-rep3 <- readRDS(file = "data/processed/rep3.rds")
-
-# data_long_4 <- data_long_2 %>%
-#   filter(brood==2)
-# 
-# rep4 <- rpt(measurement ~ 1 +  (1| peregg), grname = c("peregg"),
-#             data = data_long_4, datatype = "Gaussian", nboot = 1000, npermut = 0)
-# saveRDS(rep4, file = "data/processed/rep4.rds")
-rep4 <- readRDS(file = "data/processed/rep4.rds")
-
-# calculate average egg perimeter
-earwig_egg_2 <- earwig_egg %>%
-  rowwise() %>%
-  mutate(mean.perim = mean(c_across(perim:perim3))) %>%
-  ungroup()
-
-# =========================================
 # Final dataset
 # =========================================
 # total.data <- earwig_egg_2 %>%
@@ -179,6 +141,7 @@ earwig_egg_2 <- earwig_egg %>%
 
 # saveRDS(df, file = "data/processed/df.rds")
 df <- readRDS(file = "data/processed/df.rds")
+write.csv(df, file = "earwig_data.csv", row.names = FALSE)
 
 # =========================================
 # Summary stats
@@ -425,23 +388,33 @@ int.cor <- quantile(
      c(0.025, 0.5, 0.975)
     )
 
-# egg number repeatability (negative binomial; observation scale)
+# EGG NUMBER repeatability (negative binomial; observation scale)
 
-# Extract posterior draws
 draws <- as_draws_df(fit_mv)
-names(draws)[grep("egg_number", names(draws))]
+
+sigma2 <- draws$sd_id__eggnumber_Intercept^2
+theta  <- draws$shape_eggnumber
 
 mu_draws <- posterior_epred(fit_mv, resp = "eggnumber")
-mu_bar <- apply(mu_draws, 1, mean)
-# Among-female variance
-VF <- draws$sd_id__eggnumber_Intercept^2
 
-# Shape parameter
-theta <- draws$shape_eggnumber
-Vdist <- mu_bar + (mu_bar^2 / theta)
-R_obs <- VF / (VF + Vdist)
+# Preallocate
+VF_obs <- numeric(nrow(mu_draws))
+Vdist  <- numeric(nrow(mu_draws))
+
+for (i in seq_len(nrow(mu_draws))) {
+  mu_i <- mu_draws[i, ]
+  
+  # Among-female variance (observation scale)
+  VF_obs[i] <- mean(mu_i^2) * (exp(sigma2[i]) - 1)
+  
+  # Distribution variance
+  Vdist[i] <- mean(mu_i + (mu_i^2 / theta[i]))
+}
+
+R_obs <- VF_obs / (VF_obs + Vdist)
+
 mean_R <- mean(R_obs)
-CI_R <- quantile(R_obs, probs = c(0.025, 0.975))
+CI_R <- quantile(R_obs, c(0.025, 0.975))
 
 mean_R
 CI_R
@@ -571,189 +544,226 @@ quantile(post_alt$cor_id__brood_factorone__brood_factortwo, c(.025,.5,.975))
 # Plots
 # =========================================
 
-# # Within predictions
-# pred_within <- add_epred_draws(
-#   fit_mv,
-#   newdata = new_within,
-#   resp = "meaneggsize",
-#   re_formula = NA
-# ) %>%
-#   mutate(type = "Within-female")
-# 
-# # Between predictions
-# pred_between <- add_epred_draws(
-#   fit_mv,
-#   newdata = new_between,
-#   resp = "meaneggsize",
-#   re_formula = NA
-# ) %>%
-#   mutate(type = "Between-female")
-# 
-# # Combine
-# pred_all <- bind_rows(pred_within, pred_between)
-# 
-# # PANEL A — Within-female
-# p_within <- ggplot() +
-# 
-#   # Raw reaction norms
-#   geom_line(data = df,
-#             aes(x = egg_number_within_z,
-#                 y = mean.egg.size,
-#                 group = id),
-#             alpha = 0.3) +
-# 
-#   geom_point(data = df,
-#              aes(x = egg_number_within_z,
-#                  y = mean.egg.size, shape=brood),
-#              size = 3, colour="black") +
-# 
-#     # Bayesian slope only
-#   stat_summary(
-#     data =
-#       pred_within,
-#     aes(x = egg_number_within_z,
-#         y = .epred,
-#         group = 1),
-#     fun = mean,
-#     geom = "line",
-#     linewidth = 1.3,
-#     color = "black"
-#   ) +
-#   scale_shape_manual(name="Clutch order",labels = c("First", "Second"),values = c(1, 16)) +
-#   theme_bw() +
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-#         legend.position = "inside", legend.position.inside = c(0.2, 0.8),
-#         strip.background = element_rect(fill="white"),
-#         axis.title.x = element_text(size=14,face="bold"),
-#         axis.title.y = element_text(size=14,face="bold"),
-#         axis.text.x = element_text(size=12),
-#         axis.text.y = element_text(size=12)) +
-#   labs(
-#     x = "Within-female deviation in egg number",
-#     y = "Mean egg size"
-#   )
-# 
-# # PANEL B — Between-female
-# p_between <- ggplot() +
-# 
-#   # Female means (raw intuition)
-#   geom_point(data = female_means,
-#              aes(x = scale(mean_eggnumber),
-#                  y = mean_eggsize),
-#              size = 3) +
-# 
-#   # Bayesian slope only
-#   stat_summary(
-#     data = pred_between,
-#     aes(x = egg_number_between_z,
-#         y = .epred,
-#         group = 1),
-#     fun = mean,
-#     geom = "line",
-#     linewidth = 1.3,
-#     color = "black"
-#   ) +
-# 
-#   theme_bw() +
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-#         strip.background = element_rect(fill="white"),
-#         axis.title.x = element_text(size=14,face="bold"),
-#         axis.title.y = element_text(size=14,face="bold"),
-#         axis.text.x = element_text(size=12),
-#         axis.text.y = element_text(size=12)) +
-#   labs(
-#     x = "Between-female deviation in egg number",
-#     y = "Mean egg size"
-#   )
-# 
-# 
-# # Combine
-# figure_1<-plot_grid(p_within, p_between, ncol=2, nrow=1,
-#                     labels = c('(a)', '(b)'))
-# ggsave(figure_1, filename="figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+library(dplyr)
 
-# 
-# egg_seq <- seq(-2, 2, length.out = 100)
-# 
+df <- df %>%
+  group_by(id) %>%
+  mutate(
+    mean_eggnumber = mean(egg.number, na.rm = TRUE),
+    egg_number_within = egg.number - mean_eggnumber
+  ) %>%
+  ungroup() %>%
+  mutate(
+    egg_number_between = mean_eggnumber,
+    egg_number_within_z  = as.numeric(scale(egg_number_within)),
+    egg_number_between_z = as.numeric(scale(egg_number_between))
+  )
+
+new_within <- tibble(
+  egg_number_within_z = seq(min(df$egg_number_within_z),
+                            max(df$egg_number_within_z),
+                            length.out = 100),
+  egg_number_between_z = 0,   # hold between constant
+  brood = "one"             # or reference level
+)
+
+new_between <- tibble(
+  egg_number_between_z = seq(min(df$egg_number_between_z),
+                             max(df$egg_number_between_z),
+                             length.out = 100),
+  egg_number_within_z = 0,    # hold within constant
+  brood = "one"
+)
+
+female_means <- df %>%
+  group_by(id) %>%
+  summarise(
+    mean_eggnumber = mean(egg.number, na.rm = TRUE),
+    mean_eggsize   = mean(mean.egg.size, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Within predictions
+pred_within <- add_epred_draws(
+  fit_mv,
+  newdata = new_within,
+  resp = "meaneggsize",
+  re_formula = NA
+) %>%
+  mutate(type = "Within-female")
+
+# Between predictions
+pred_between <- add_epred_draws(
+  fit_mv,
+  newdata = new_between,
+  resp = "meaneggsize",
+  re_formula = NA
+) %>%
+  mutate(type = "Between-female")
+
+# Combine
+pred_all <- bind_rows(pred_within, pred_between)
+
+# PANEL A — Within-female
+p_within <- ggplot() +
+
+  # Raw reaction norms
+  geom_line(data = df,
+            aes(x = egg_number_within_z,
+                y = mean.egg.size,
+                group = id),
+            alpha = 0.3) +
+
+  geom_point(data = df,
+             aes(x = egg_number_within_z,
+                 y = mean.egg.size, shape=brood),
+             size = 3, colour="black") +
+
+    # Bayesian slope only
+  stat_summary(
+    data =
+      pred_within,
+    aes(x = egg_number_within_z,
+        y = .epred,
+        group = 1),
+    fun = mean,
+    geom = "line",
+    linewidth = 1.3,
+    color = "black"
+  ) +
+  scale_shape_manual(name="Clutch order",labels = c("First", "Second"),values = c(1, 16)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "inside", legend.position.inside = c(0.2, 0.8),
+        strip.background = element_rect(fill="white"),
+        axis.title.x = element_text(size=14,face="bold"),
+        axis.title.y = element_text(size=14,face="bold"),
+        axis.text.x = element_text(size=12),
+        axis.text.y = element_text(size=12)) +
+  labs(
+    x = "Within-female deviation in egg number",
+    y = "Mean egg size (mm)"
+  )
+
+# PANEL B — Between-female
+p_between <- ggplot() +
+
+  # Female means (raw intuition)
+  geom_point(data = female_means,
+             aes(x = scale(mean_eggnumber),
+                 y = mean_eggsize),
+             size = 3) +
+
+  # Bayesian slope only
+  stat_summary(
+    data = pred_between,
+    aes(x = egg_number_between_z,
+        y = .epred,
+        group = 1),
+    fun = mean,
+    geom = "line",
+    linewidth = 1.3,
+    color = "black"
+  ) +
+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        strip.background = element_rect(fill="white"),
+        axis.title.x = element_text(size=14,face="bold"),
+        axis.title.y = element_text(size=14,face="bold"),
+        axis.text.x = element_text(size=12),
+        axis.text.y = element_text(size=12)) +
+  labs(
+    x = "Between-female deviation in egg number",
+    y = "Mean egg size (mm)"
+  )
+
+
+# Combine
+figure_1 <- plot_grid(p_within, p_between, ncol=2, nrow=1,
+                    labels = c('(a)', '(b)'))
+ggsave(figure_1, filename="figure_1.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+
+
+egg_seq <- seq(-2, 2, length.out = 100)
+
 # # Within-female grid
-# new_within <- data.frame(
-#   brood = "one",
-#   egg_number_within_z = egg_seq,
-#   egg_number_between_z = 0
-# )
-# 
-# # Between-female grid
-# new_between <- data.frame(
-#   brood = "one",
-#   egg_number_within_z = 0,
-#   egg_number_between_z = egg_seq
-# )
-# pred_within <- add_epred_draws(
-#   fit_mv,
-#   newdata = new_within,
-#   resp = "meaneggsize",
-#   re_formula = NA
-# )
-# 
+new_within <- data.frame(
+  brood = "one",
+  egg_number_within_z = egg_seq,
+  egg_number_between_z = 0
+)
 
+# Between-female grid
+new_between <- data.frame(
+  brood = "one",
+  egg_number_within_z = 0,
+  egg_number_between_z = egg_seq
+)
+pred_within <- add_epred_draws(
+  fit_mv,
+  newdata = new_within,
+  resp = "meaneggsize",
+  re_formula = NA
+)
 
-# 
-# post_alt <- as_draws_df(egg.size.model.alt)
-# 
-# df_plot <- tibble(
-#   var_between_B1 = post_alt$sd_id__brood_factorone^2,
-#   var_between_B2 = post_alt$sd_id__brood_factortwo^2,
-#   var_within_B1  = var_within_B1,
-#   var_within_B2  = var_within_B2
-# ) %>%
-#   pivot_longer(everything(),
-#                names_to = "component",
-#                values_to = "variance")
-# 
-# # Combine posterior draws
-# df_between <- tibble(
-#   brood = rep(c("first", "second"),
-#               each = length(var_B1_alt)),
-#   variance = c(var_B1_alt, var_B2_alt),
-#   type = "Between-female egg size variation"
-# )
-# 
-# df_within <- tibble(
-#   brood = rep(c("first", "second"),
-#               each = length(var_within_B1)),
-#   variance = c(var_within_B1, var_within_B2),
-#   type = "Within-clutch egg size variation"
-# )
-# 
-# df_plot <- bind_rows(df_between, df_within)
-# 
-# p_variance <- ggplot(df_plot, aes(x = brood, y = variance)) +
-#   
-#   # posterior draws as semi-transparent dots
-#   stat_dotsinterval(slab_fill="darkgrey", slab_color="darkgrey", point_interval = median_qi,
-#                     .width = 0.95, quantiles=100) +
-#   
-#   # median + 95% credible interval
-#   stat_summary(fun.data = median_qi,
-#                fun.args = list(.width = 0.95),
-#                geom = "pointrange",
-#                color = "black",
-#                size = 0.8) +
-#   
-#   facet_wrap(~ type, scales = "free_y") +
-#   
-#   labs(x = "Clutch laying order",
-#        y = NULL) +
-#   
-#   theme_bw() +
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-#         strip.background = element_rect(fill="white"),
-#         axis.title.x = element_text(size=14,face="bold"),
-#         axis.title.y = element_text(size=14,face="bold"),
-#         axis.text.x = element_text(size=12),
-#         axis.text.y = element_text(size=12))
-# ggsave(p_variance, filename="figure_4.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
-# 
+post_alt <- as_draws_df(egg.size.model.alt)
+
+df_plot <- tibble(
+  var_between_B1 = post_alt$sd_id__brood_factorone^2,
+  var_between_B2 = post_alt$sd_id__brood_factortwo^2,
+  var_within_B1  = var_within_B1,
+  var_within_B2  = var_within_B2
+) %>%
+  pivot_longer(everything(),
+               names_to = "component",
+               values_to = "variance")
+
+# Combine posterior draws
+df_between <- tibble(
+  brood = rep(c("first", "second"),
+              each = length(var_B1_alt)),
+  variance = c(var_B1_alt, var_B2_alt),
+  type = "Between-female egg size variation"
+)
+
+df_within <- tibble(
+  brood = rep(c("first", "second"),
+              each = length(var_within_B1)),
+  variance = c(var_within_B1, var_within_B2),
+  type = "Within-clutch egg size variation"
+)
+
+df_plot <- bind_rows(df_between, df_within)
+
+p_variance <- ggplot(df_plot, aes(x = brood, y = variance)) +
+
+  # posterior draws as semi-transparent dots
+  stat_dotsinterval(slab_fill="darkgrey", slab_color="darkgrey", point_interval = median_qi,
+                    .width = 0.95, quantiles=100) +
+
+  # median + 95% credible interval
+  stat_summary(fun.data = median_qi,
+               fun.args = list(.width = 0.95),
+               geom = "pointrange",
+               color = "black",
+               size = 0.8) +
+
+  facet_wrap(~ type, scales = "free_y") +
+
+  labs(x = "Clutch laying order",
+       y = "Variance in egg size (mm)") +
+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        strip.background = element_rect(fill="white"),
+        strip.text = element_text(size = 14),
+        axis.title.x = element_text(size=14,face="bold"),
+        axis.title.y = element_text(size=14,face="bold"),
+        axis.text.x = element_text(size=12),
+        axis.text.y = element_text(size=12))
+ggsave(p_variance, filename="figure_2.jpg", width=10.83, height=10.83, dpi=300,antialias="default")
+
 
 
 ## ---- end
