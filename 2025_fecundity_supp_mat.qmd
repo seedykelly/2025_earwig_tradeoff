@@ -25,7 +25,7 @@ format:
     toc: false
     reference-doc: word-style-template.docx
 bibliography: Bibliography.bib
-csl: current-zoology.csl
+csl: journal-of-evolutionary-biology.csl
 ---
 
 ```{r echo=FALSE}
