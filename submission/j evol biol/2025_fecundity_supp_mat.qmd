@@ -1,0 +1,578 @@
+---
+title: "Supplemental Material: Disentangling within- and between-female egg size–number trade-offs in the European earwig"
+authors:
+  - name: Clint D. Kelly
+    affiliations:
+      - ref: cdk
+    corresponding: true
+    email: kelly.clint@uqam.ca
+    orcid: 0000-0002-0693-7211
+    
+affiliations:
+  - id: cdk
+    name: Département des Sciences biologiques, Université du Québec à Montréal, Montréal, Canada
+
+filters:
+  - authors-block
+  - iagopinal/figure-table-formatter
+
+crossref:
+  tbl-title: Table S
+  fig-title: Figure S
+
+format:
+  docx:
+    toc: false
+    reference-doc: word-style-template.docx
+bibliography: Bibliography.bib
+csl: journal-of-evolutionary-biology.csl
+---
+
+```{r echo=FALSE}
+knitr::read_chunk('scripts/earwig_tradeoff.R')
+```
+
+```{r analysis, include=FALSE,echo=FALSE, warning=FALSE, results="hide"}
+```
+
+\newpage
+
+# 1. Within–between multivariate model
+
+To partition covariance arising from within-female plasticity from covariance attributable to consistent among-female differences, I applied the within–between decomposition of van de Pol and Wright [@vandepol2009]. Although mean-centering can impose assumptions about underlying biological processes [@westneat2020], these assumptions are appropriate here because the aim was to distinguish plastic allocation within females from persistent differences among females.
+
+Let egg number for female $i$ in brood $j$ be denoted $N_{ij}$. Egg number was decomposed as
+
+$$
+N_{ij} = \bar{N}_i + (N_{ij} - \bar{N}_i)
+$$ {#eq-decomposition}
+
+The between- and within-female components were defined as
+
+$$
+N_i^{B} = \bar{N}_i - \bar{N}
+$$ {#eq-between}
+
+$$
+N_{ij}^{W} = N_{ij} - \bar{N}_i
+$$ {#eq-within}
+
+## Egg number submodel
+
+Egg number was modelled using a negative binomial distribution with a log link:
+
+$$
+N_{ij} \sim \mathrm{NegBinomial}(\mu_{ij}, \theta)
+$$ {#eq-nb_dist}
+
+$$
+\log(\mu_{ij}) =
+\beta_{0}^{N}
++ \beta_{1}^{N}\mathrm{Brood}_{ij}
++ u_{0i}^{N}
+$$ {#eq-nb_link}
+
+where
+
+$$
+u_{0i}^{N} \sim \mathcal{N}(0, \sigma_{N}^{2})
+$$ {#eq-nb_random}
+
+## Mean egg size submodel
+
+Mean egg size was modelled as
+
+$$
+S_{ij} \sim \mathcal{N}(\mu_{ij}^{S}, \sigma_{S}^{2})
+$$ {#eq-gauss_dist}
+
+$$
+\mu_{ij}^{S} =
+\beta_{0}^{S}
++ \beta_{1}^{S}\mathrm{Brood}_{ij}
++ \beta_{W} N_{ij}^{W}
++ \beta_{B} N_{i}^{B}
++ u_{0i}^{S}
+$$ {#eq-gauss_link}
+
+with
+
+$$
+u_{0i}^{S} \sim \mathcal{N}(0, \sigma_{S,id}^{2})
+$$ {#eq-gauss_random}
+
+## Multivariate structure
+
+The two submodels were fit jointly:
+
+$$
+\begin{pmatrix}
+u_{0i}^{N} \\
+u_{0i}^{S}
+\end{pmatrix}
+\sim
+\mathcal{MVN}
+\left(
+\begin{pmatrix}
+0 \\
+0
+\end{pmatrix},
+\Sigma
+\right)
+$$ {#eq-mvn}
+
+where
+
+$$
+\Sigma =
+\begin{pmatrix}
+\sigma_{N}^{2} & \sigma_{NS} \\
+\sigma_{NS} & \sigma_{S,id}^{2}
+\end{pmatrix}
+$$ {#eq-sigma_matrix}
+
+The intercept correlation is
+
+$$
+\rho_{NS}
+=
+\frac{\sigma_{NS}}
+{\sqrt{\sigma_{N}^{2} \sigma_{S,id}^{2}}}
+$$ {#eq-intercept_corr}
+
+## Relationship between model parameters and total phenotypic covariance
+
+Total phenotypic covariance can be partitioned as
+
+$$
+\mathrm{Cov}_{\text{total}}
+=
+\mathrm{Cov}_{\text{within}}
++
+\mathrm{Cov}_{\text{among}}
+$$ {#eq-cov_partition}
+
+## Within-female covariance
+
+$$
+\mathrm{Cov}_{\text{within}}
+=
+\beta_W \, \mathrm{Var}(N_{ij}^{W})
+$$ {#eq-cov_within}
+
+## Among-female covariance
+
+$$
+\mathrm{Cov}_{\text{among, slope}}
+=
+\beta_B \, \mathrm{Var}(N_i^{B})
+$$ {#eq-cov_among_slope}
+
+$$
+\mathrm{Cov}_{\text{among, intercept}}
+=
+\sigma_{NS}
+$$ {#eq-cov_among_intercept}
+
+Total among-female covariance is therefore
+
+$$
+\mathrm{Cov}_{\text{among}}
+=
+\beta_B \, \mathrm{Var}(N_i^{B})
++
+\sigma_{NS}
+$$ {#eq-cov_among_total}
+
+## Total phenotypic covariance
+
+Combining components:
+
+$$
+\mathrm{Cov}_{\text{total}}
+=
+\beta_W \, \mathrm{Var}(N_{ij}^{W})
++
+\beta_B \, \mathrm{Var}(N_i^{B})
++
+\sigma_{NS}
+$$ {#eq-cov_total_expanded}
+
+The intercept correlation is
+
+$$
+\rho_{NS}
+=
+\frac{\sigma_{NS}}
+{\sqrt{\sigma_N^{2} \sigma_{S,id}^{2}}}
+$$ {#eq-rho_definition}
+
+## Corresponding *brms* Specification
+
+```r
+bf_number <- bf(
+  egg.number ~ brood + (1 |p| id),
+  family = negbinomial()
+)
+
+bf_size <- bf(
+  mean.egg.size ~ brood +
+    egg_number_within_z +
+    egg_number_between_z +
+    (1 |p| id),
+  family = gaussian()
+)
+
+mv_model <- bf_number + bf_size
+```
+
+::: {.landscape}
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| label: tbl-one
+#| tbl-cap: Posterior summaries from the multivariate Bayesian mixed-effects model examining the relationship between egg number and mean egg size. The model jointly estimated a negative binomial model for egg number and a Gaussian model for egg size, including brood effects and partitioning egg number into within- and between-female components. Reported values are posterior medians and 95% credible intervals (CrI). Random effects represent among-female (ID-level) variation, and the correlation term describes the association between female intercepts for egg number and egg size. The dispersion parameter refers to the negative binomial shape parameter.
+
+# -----------------------------
+# 1. FIXED EFFECTS (Mean model)
+# -----------------------------
+
+fixed_tab <- fit_mv |>
+  spread_draws(
+    b_meaneggsize_Intercept,
+    b_meaneggsize_broodtwo,
+    b_meaneggsize_egg_number_within_z,
+    b_meaneggsize_egg_number_between_z,
+    b_eggnumber_Intercept,
+    b_eggnumber_broodtwo
+  ) |>
+  pivot_longer(cols = -c(.chain, .iteration, .draw),
+               names_to = "term",
+               values_to = "value") |>
+  group_by(term) |>
+  median_qi(value, .width = 0.95) |>
+  ungroup() |>
+  mutate(
+    Parameter = recode(term,
+      b_meaneggsize_Intercept = "Egg size: Intercept (Brood 1)",
+      b_meaneggsize_broodtwo = "Egg size: Brood 2 − Brood 1",
+      b_meaneggsize_egg_number_within_z =
+        "Egg size: Within-female deviation in egg number (z)",
+      b_meaneggsize_egg_number_between_z =
+        "Egg size: Between-female deviation in egg number (z)",
+      b_eggnumber_Intercept =
+        "Egg number: Intercept (Brood 1, log scale)",
+      b_eggnumber_broodtwo =
+        "Egg number: Brood 2 − Brood 1 (log scale)"
+    ),
+    Estimate = round(value, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+# -----------------------------
+# 2. RANDOM EFFECTS (Female ID)
+# -----------------------------
+
+random_tab <- fit_mv |>
+  spread_draws(
+    sd_id__meaneggsize_Intercept,
+    sd_id__eggnumber_Intercept,
+    cor_id__eggnumber_Intercept__meaneggsize_Intercept
+  ) |>
+  pivot_longer(cols = -c(.chain, .iteration, .draw),
+               names_to = "term",
+               values_to = "value") |>
+  group_by(term) |>
+  median_qi(value, .width = 0.95) |>
+  ungroup() |>
+  mutate(
+    Parameter = recode(term,
+      sd_id__meaneggsize_Intercept =
+        "SD (Egg size | Female ID)",
+      sd_id__eggnumber_Intercept =
+        "SD (Egg number | Female ID)",
+      cor_id__meaneggsize_Intercept__eggnumber_Intercept =
+        "Correlation (Egg size, Egg number | Female ID)"
+    ),
+    Estimate = round(value, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+# -----------------------------
+# 3a. RESIDUAL SD (Egg size)
+# -----------------------------
+
+sigma_tab <- fit_mv |>
+  spread_draws(sigma_meaneggsize) |>
+  median_qi(sigma_meaneggsize, .width = 0.95) |>
+  mutate(
+    Parameter = "Residual SD (Egg size)",
+    Estimate = round(sigma_meaneggsize, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+# -----------------------------
+# 3b. Negative Binomial Shape
+# -----------------------------
+
+shape_tab <- fit_mv |>
+  spread_draws(shape_eggnumber) |>
+  median_qi(shape_eggnumber, .width = 0.95) |>
+  mutate(
+    Parameter = "Dispersion (Egg number | NegBin shape)",
+    Estimate = round(shape_eggnumber, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+# -----------------------------
+# 4. COMBINE ALL TABLES
+# -----------------------------
+
+final_tab <- bind_rows(
+  fixed_tab,
+  random_tab,
+  sigma_tab,
+  shape_tab
+)
+
+flextable(final_tab) |>
+  autofit()
+```
+:::
+
+# 2. Clutch-Specific Hierarchical Model of Egg Size
+
+## Statistical Model
+
+Egg perimeter was standardized prior to analysis (mean = 0, SD = 1).
+
+For female $i$, egg $j$, and brood $b \in \{1,2\}$, standardized egg size $y_{ijb}$ was modeled as:
+
+$$
+y_{ijb} \sim \mathcal{N}(\mu_{ijb}, \sigma_b^2)
+$$
+
+The conditional mean structure was:
+
+$$
+\mu_{ijb}
+=
+\beta_0
++
+\beta_1 I(b=2)
++
+u_{ib}
+$$
+
+where:
+
+- $\beta_0$ is the mean egg size in clutch 1 (reference level),  
+- $\beta_1$ is the fixed difference between clutch 2 and clutch 1,  
+- $u_{ib}$ is the female-specific deviation for clutch $b$.  
+
+
+
+## Random Effects Structure
+
+Clutch-specific female deviations were modeled as a correlated bivariate normal vector:
+
+$$
+\mathbf{u}_i
+=
+\begin{pmatrix}
+u_{i1} \\
+u_{i2}
+\end{pmatrix}
+\sim
+\mathcal{MVN}
+\left(
+\begin{pmatrix}
+0 \\
+0
+\end{pmatrix},
+\Sigma
+\right)
+$$
+
+with variance–covariance matrix:
+
+$$
+\Sigma
+=
+\begin{pmatrix}
+\tau_1^2 & \rho \tau_1 \tau_2 \\
+\rho \tau_1 \tau_2 & \tau_2^2
+\end{pmatrix}
+$$
+
+Here:
+
+- $\tau_1^2$ and $\tau_2^2$ are the among-female variances in clutches 1 and 2, respectively,  
+- $\rho = \mathrm{Corr}(u_{i1}, u_{i2})$ is the correlation between female deviations across clutches.  
+
+Importantly, no clutch-independent random intercept was estimated. The model includes only clutch-specific female deviations (i.e., random slopes of clutch within female), corresponding to the specification `(0 + brood_factor | id)` in `brms`.
+
+
+
+## Residual Variance Model
+
+Residual variance was allowed to differ between clutches:
+
+$$
+\log(\sigma_b)
+=
+\alpha_0
++
+\alpha_1 I(b=2)
+$$
+
+where:
+
+- $\sigma_1^2$ is the residual variance in clutch 1,  
+- $\sigma_2^2$ is the residual variance in clutch 2.  
+
+The log link ensures that residual standard deviations remain positive.
+
+
+
+## Corresponding *brms* Specification
+
+```r
+bf(
+  scale(mean.perim) ~ brood_factor + (0 + brood_factor | id),
+  sigma ~ brood_factor
+)
+```
+
+```{r}
+#| echo: false
+#| results: asis
+#| warning: FALSE
+#| label: tbl-two
+#| tbl-cap: Posterior medians and 95% credible intervals from a Bayesian mixed model of scaled egg perimeter, including clutch-specific means, clutch-specific female-level random effects, and clutch-specific residual variance.
+
+# -----------------------------
+# 1. FIXED EFFECTS (Mean model)
+# -----------------------------
+
+fixed_tab <- egg.size.model.alt |>
+  spread_draws(
+    b_Intercept,
+    b_brood_factortwo
+  ) |>
+  pivot_longer(
+    cols = -c(.chain, .iteration, .draw),
+    names_to = "term",
+    values_to = "value"
+  ) |>
+  group_by(term) |>
+  median_qi(value, .width = 0.95) |>
+  ungroup() |>
+  mutate(
+    Parameter = recode(term,
+      b_Intercept = "Mean (Brood 1)",
+      b_brood_factortwo = "Brood 2 − Brood 1"
+    ),
+    Estimate = round(value, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+
+# -----------------------------
+# 2. RANDOM EFFECTS (ID level)
+# -----------------------------
+
+random_tab <- egg.size.model.alt |>
+  spread_draws(
+    sd_id__brood_factorone,
+    sd_id__brood_factortwo,
+    cor_id__brood_factorone__brood_factortwo
+  ) |>
+  pivot_longer(
+    cols = -c(.chain, .iteration, .draw),
+    names_to = "term",
+    values_to = "value"
+  ) |>
+  group_by(term) |>
+  median_qi(value, .width = 0.95) |>
+  ungroup() |>
+  mutate(
+    Parameter = recode(term,
+      sd_id__brood_factorone = "SD (Brood 1 | Female ID)",
+      sd_id__brood_factortwo = "SD (Brood 2 | Female ID)",
+      cor_id__brood_factorone__brood_factortwo =
+        "Correlation (Brood 1, Brood 2 | Female ID)"
+    ),
+    Estimate = round(value, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+
+# -----------------------------
+# 3. RESIDUAL SD (back-transformed)
+# -----------------------------
+
+sigma_tab <- egg.size.model.alt |>
+  spread_draws(
+    b_sigma_Intercept,
+    b_sigma_brood_factortwo
+  ) |>
+  mutate(
+    sigma_brood1 = exp(b_sigma_Intercept),
+    sigma_brood2 = exp(b_sigma_Intercept + b_sigma_brood_factortwo)
+  ) |>
+  select(-.chain, -.iteration, -.draw) |>
+  pivot_longer(
+    cols = c(sigma_brood1, sigma_brood2),
+    names_to = "term",
+    values_to = "value"
+  ) |>
+  group_by(term) |>
+  median_qi(value, .width = 0.95) |>
+  ungroup() |>
+  mutate(
+    Parameter = recode(term,
+      sigma_brood1 = "Residual SD (Brood 1)",
+      sigma_brood2 = "Residual SD (Brood 2)"
+    ),
+    Estimate = round(value, 3),
+    `Lower 95% CrI` = round(.lower, 3),
+    `Upper 95% CrI` = round(.upper, 3)
+  ) |>
+  select(Parameter, Estimate, `Lower 95% CrI`, `Upper 95% CrI`)
+
+
+# -----------------------------
+# 4. COMBINE
+# -----------------------------
+
+final_tab <- bind_rows(
+  fixed_tab,
+  random_tab,
+  sigma_tab
+)
+
+flextable(final_tab) |>
+  autofit()
+```
+
+
+\newpage
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
