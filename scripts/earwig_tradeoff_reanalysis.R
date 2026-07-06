@@ -303,8 +303,10 @@ bf_size <- bf(
 bivariate_formula <- bf_number + bf_size + set_rescor(TRUE)
 
 prior_bivariate <- c(
-  prior(normal(0, 1), class = "b"),
-  prior(normal(0, 1), class = "Intercept"),
+  prior(normal(0, 1), class = "b",         resp = "logeggnumberz"),
+  prior(normal(0, 1), class = "b",         resp = "logeggsizez"),
+  prior(normal(0, 1), class = "Intercept", resp = "logeggnumberz"),
+  prior(normal(0, 1), class = "Intercept", resp = "logeggsizez"),
   
   # Female-level standard deviations for each response
   prior(
@@ -350,7 +352,7 @@ fit_bivariate <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_bivariate_revised",
-  file_refit = "on_change"
+  file_refit = "never"
 )
 
 biv_draws <- as_draws_df(fit_bivariate)
@@ -411,7 +413,7 @@ fit_context <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_context_pooled_scaling",
-  file_refit = "on_change"
+  file_refit = "never"
 )
 
 context_draws <- as_draws_df(fit_context)
@@ -444,7 +446,7 @@ fit_context_within_brood_scaling <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_context_within_brood_scaling",
-  file_refit = "on_change"
+  file_refit = "never"
 )
 
 context_wbscale_draws <- as_draws_df(fit_context_within_brood_scaling)
@@ -597,7 +599,7 @@ fit_wb_raw <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_wb_raw_pronotum",
-  file_refit = "on_change"
+  file_refit = "never"
 )
 
 fit_wb_log <- brm(
@@ -615,7 +617,7 @@ fit_wb_log <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_wb_log_pronotum",
-  file_refit = "on_change"
+  file_refit = "never"
 )
 
 wb_raw_draws <- as_draws_df(fit_wb_raw)
@@ -649,7 +651,7 @@ fit_change_raw <- brm(
   seed = 127,
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   file = "data/processed/fit_change_raw_revised",
-  file_refit = "on_change"
+  file_refit = "never"
 )
 
 fit_change_log <- brm(
@@ -669,7 +671,7 @@ fit_change_log <- brm(
   seed = 128,
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   file = "data/processed/fit_change_log_revised",
-  file_refit = "on_change"
+  file_refit = "never"
 )
 
 change_raw_draws <- as_draws_df(fit_change_raw)
