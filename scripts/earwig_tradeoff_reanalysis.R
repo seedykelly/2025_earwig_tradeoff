@@ -1,8 +1,8 @@
 # Reanalysis of the European earwig egg size-number data
 # =============================================================================
-# This script is designed to replace the covariance and repeatability sections
-# of the rejected-manuscript analysis. It treats the two broods as the complete
-# biologically relevant reproductive sequence and asks three complementary
+# This script reproduces the covariance and context-specific analyses for the
+# revised manuscript. It treats the two observed clutches as paired reproductive
+# events and asks three complementary
 # questions:
 #   1. Is egg size-number covariance expressed among or within females?
 #   2. Does the association differ between first and second broods?
@@ -19,7 +19,12 @@ library(tidybayes)
 library(patchwork)
 library(flextable)
 
-options(mc.cores = min(4, parallel::detectCores()))
+detected_cores <- parallel::detectCores(logical = FALSE)
+if (is.na(detected_cores) || detected_cores < 1) {
+  detected_cores <- 1L
+}
+analysis_cores <- min(4L, detected_cores)
+options(mc.cores = analysis_cores)
 # Note: this seed applies only to the cluster bootstrap functions below.
 # Each brm() call uses its own seed argument and is unaffected by set.seed().
 set.seed(123)
@@ -120,7 +125,37 @@ df <- readRDS(data_path) %>%
     log_egg_number = log(egg.number),
     log_egg_size = log(mean.egg.size),
     mean_egg_size_z = as.numeric(scale(mean.egg.size))
-  ) 
+  )
+
+expected_females <- 45L
+expected_observations <- expected_females * 2L
+
+validation_counts <- df %>%
+  count(id, brood, name = "n_rows") %>%
+  group_by(id) %>%
+  summarise(
+    n_broods = n(),
+    rows_per_brood_ok = all(n_rows == 1),
+    .groups = "drop"
+  )
+
+if (
+  nrow(df) != expected_observations ||
+  n_distinct(df$id) != expected_females ||
+  any(validation_counts$n_broods != 2) ||
+  !all(validation_counts$rows_per_brood_ok) ||
+  anyNA(df[, c("egg.number", "mean.egg.size", "mean.pro")]) ||
+  any(df$egg.number <= 0) ||
+  any(df$mean.egg.size <= 0) ||
+  any(df$mean.pro <= 0)
+) {
+  stop("Analysis dataset failed sample-size, pairing, or completeness checks.")
+}
+
+cat(
+  "Validated analysis dataset:", n_distinct(df$id),
+  "females and", nrow(df), "paired observations.\n"
+)
 
 # Pooled scaling is used in the primary brood-specific model so that a one-SD
 # difference in log egg number has the same meaning in both reproductive bouts.
@@ -346,7 +381,7 @@ fit_bivariate <- brm(
   data = df,
   prior = prior_bivariate,
   chains = 4,
-  cores = min(4, parallel::detectCores()),
+  cores = analysis_cores,
   iter = 6000,
   warmup = 2000,
   backend = "cmdstanr",
@@ -354,7 +389,7 @@ fit_bivariate <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_bivariate_revised",
-  file_refit = "never"
+  file_refit = "on_change"
 )
 
 biv_draws <- as_draws_df(fit_bivariate)
@@ -407,7 +442,7 @@ fit_context <- brm(
   family = gaussian(),
   prior = prior_context,
   chains = 4,
-  cores = min(4, parallel::detectCores()),
+  cores = analysis_cores,
   iter = 5000,
   warmup = 1500,
   backend = "cmdstanr",
@@ -415,7 +450,7 @@ fit_context <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_context_pooled_scaling",
-  file_refit = "never"
+  file_refit = "on_change"
 )
 
 context_draws <- as_draws_df(fit_context)
@@ -429,6 +464,145 @@ context_slope_summary <- bind_rows(
   summarise_draw(slope_difference, "second_minus_first")
 )
 
+# =============================================================================
+# Reviewer-requested influence and likelihood sensitivity analyses
+# =============================================================================
+# Identify the visually conspicuous second-clutch observation reproducibly.
+reviewer_point <- df %>%
+  filter(brood == "two") %>%
+  slice_max(mean.egg.size, n = 1, with_ties = FALSE) %>%
+  select(id, brood, egg.number, mean.egg.size)
+
+if (nrow(reviewer_point) != 1) {
+  stop("Could not uniquely identify the conspicuous second-clutch observation.")
+}
+
+reviewer_point_id <- reviewer_point$id[[1]]
+
+# Cook's distance and leverage from an ordinary regression are used only as
+# screening diagnostics. The Bayesian mixed-model refits below are the primary
+# assessment because female is the repeated-measures sampling unit.
+screening_lm <- lm(
+  log_egg_size_z ~ brood * log_egg_number_z + log_pronotum_z,
+  data = df
+)
+
+influence_diagnostics <- df %>%
+  transmute(
+    id = as.character(id),
+    brood = as.character(brood),
+    egg.number,
+    mean.egg.size,
+    leverage = hatvalues(screening_lm),
+    cooks_distance = cooks.distance(screening_lm),
+    reviewer_point = id == as.character(reviewer_point_id) & brood == "two"
+  ) %>%
+  mutate(
+    cooks_flag = cooks_distance > 4 / n(),
+    leverage_flag = leverage > 2 * length(coef(screening_lm)) / n()
+  ) %>%
+  arrange(desc(cooks_distance))
+
+write_csv(
+  influence_diagnostics,
+  "data/processed/context_influence_diagnostics.csv"
+)
+
+context_without_point_dat <- df %>%
+  filter(!(id == reviewer_point_id & brood == "two"))
+
+context_without_female_dat <- df %>%
+  filter(id != reviewer_point_id)
+
+fit_context_without_point <- brm(
+  log_egg_size_z ~
+    brood * log_egg_number_z +
+    log_pronotum_z +
+    (1 | id),
+  data = context_without_point_dat,
+  family = gaussian(),
+  prior = prior_context,
+  chains = 4,
+  cores = analysis_cores,
+  iter = 5000,
+  warmup = 1500,
+  backend = "cmdstanr",
+  seed = 1242,
+  control = list(adapt_delta = 0.99, max_treedepth = 15),
+  save_pars = save_pars(all = TRUE),
+  file = "data/processed/fit_context_without_reviewer_point",
+  file_refit = "on_change"
+)
+
+fit_context_without_female <- brm(
+  log_egg_size_z ~
+    brood * log_egg_number_z +
+    log_pronotum_z +
+    (1 | id),
+  data = context_without_female_dat,
+  family = gaussian(),
+  prior = prior_context,
+  chains = 4,
+  cores = analysis_cores,
+  iter = 5000,
+  warmup = 1500,
+  backend = "cmdstanr",
+  seed = 1243,
+  control = list(adapt_delta = 0.99, max_treedepth = 15),
+  save_pars = save_pars(all = TRUE),
+  file = "data/processed/fit_context_without_reviewer_female",
+  file_refit = "on_change"
+)
+
+# A Student-t likelihood checks whether the focal conclusion depends on the
+# Gaussian model's sensitivity to the peaked distribution and long tails.
+fit_context_student <- brm(
+  log_egg_size_z ~
+    brood * log_egg_number_z +
+    log_pronotum_z +
+    (1 | id),
+  data = df,
+  family = student(),
+  prior = c(prior_context, prior(gamma(2, 0.1), class = "nu")),
+  chains = 4,
+  cores = analysis_cores,
+  iter = 5000,
+  warmup = 1500,
+  backend = "cmdstanr",
+  seed = 1244,
+  control = list(adapt_delta = 0.99, max_treedepth = 15),
+  save_pars = save_pars(all = TRUE),
+  file = "data/processed/fit_context_student",
+  file_refit = "on_change"
+)
+
+summarise_context_fit <- function(fit, model_label) {
+  fit_draws <- as_draws_df(fit)
+  fit_first <- fit_draws$b_log_egg_number_z
+  fit_difference <- fit_draws[["b_broodtwo:log_egg_number_z"]]
+  fit_second <- fit_first + fit_difference
+
+  bind_rows(
+    summarise_draw(fit_first, "first"),
+    summarise_draw(fit_second, "second"),
+    summarise_draw(fit_difference, "second_minus_first")
+  ) %>%
+    mutate(model = model_label, .before = term)
+}
+
+context_reviewer_sensitivity_summary <- bind_rows(
+  context_slope_summary %>%
+    mutate(model = "primary_gaussian", .before = term),
+  summarise_context_fit(fit_context_without_point, "exclude_observation"),
+  summarise_context_fit(fit_context_without_female, "exclude_female"),
+  summarise_context_fit(fit_context_student, "student_t_likelihood")
+)
+
+write_csv(
+  context_reviewer_sensitivity_summary,
+  "data/processed/context_reviewer_sensitivity_summary.csv"
+)
+
 # Sensitivity analysis using separate within-brood standardization. This model
 # asks about one brood-specific SD of log egg number rather than one common SD.
 fit_context_within_brood_scaling <- brm(
@@ -440,7 +614,7 @@ fit_context_within_brood_scaling <- brm(
   family = gaussian(),
   prior = prior_context,
   chains = 4,
-  cores = min(4, parallel::detectCores()),
+  cores = analysis_cores,
   iter = 5000,
   warmup = 1500,
   backend = "cmdstanr",
@@ -448,7 +622,7 @@ fit_context_within_brood_scaling <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_context_within_brood_scaling",
-  file_refit = "never"
+  file_refit = "on_change"
 )
 
 context_wbscale_draws <- as_draws_df(fit_context_within_brood_scaling)
@@ -593,7 +767,7 @@ fit_wb_raw <- brm(
   family = gaussian(),
   prior = prior_wb,
   chains = 4,
-  cores = min(4, parallel::detectCores()),
+  cores = analysis_cores,
   iter = 5000,
   warmup = 1500,
   backend = "cmdstanr",
@@ -601,7 +775,7 @@ fit_wb_raw <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_wb_raw_pronotum",
-  file_refit = "never"
+  file_refit = "on_change"
 )
 
 fit_wb_log <- brm(
@@ -611,7 +785,7 @@ fit_wb_log <- brm(
   family = gaussian(),
   prior = prior_wb,
   chains = 4,
-  cores = min(4, parallel::detectCores()),
+  cores = analysis_cores,
   iter = 5000,
   warmup = 1500,
   backend = "cmdstanr",
@@ -619,7 +793,7 @@ fit_wb_log <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   save_pars = save_pars(all = TRUE),
   file = "data/processed/fit_wb_log_pronotum",
-  file_refit = "never"
+  file_refit = "on_change"
 )
 
 wb_raw_draws <- as_draws_df(fit_wb_raw)
@@ -646,14 +820,14 @@ fit_change_raw <- brm(
     prior(student_t(3, 0, 1), class = "sigma")
   ),
   chains = 4,
-  cores = min(4, parallel::detectCores()),
+  cores = analysis_cores,
   iter = 5000,
   warmup = 1500,
   backend = "cmdstanr",
   seed = 127,
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   file = "data/processed/fit_change_raw_revised",
-  file_refit = "never"
+  file_refit = "on_change"
 )
 
 fit_change_log <- brm(
@@ -666,14 +840,14 @@ fit_change_log <- brm(
     prior(student_t(3, 0, 1), class = "sigma")
   ),
   chains = 4,
-  cores = min(4, parallel::detectCores()),
+  cores = analysis_cores,
   iter = 5000,
   warmup = 1500,
   backend = "cmdstanr",
   seed = 128,
   control = list(adapt_delta = 0.99, max_treedepth = 15),
   file = "data/processed/fit_change_log_revised",
-  file_refit = "never"
+  file_refit = "on_change"
 )
 
 change_raw_draws <- as_draws_df(fit_change_raw)
@@ -827,6 +1001,9 @@ table_1_flex <- table_1_data %>%
 fits <- list(
   bivariate = fit_bivariate,
   context = fit_context,
+  context_without_reviewer_point = fit_context_without_point,
+  context_without_reviewer_female = fit_context_without_female,
+  context_student = fit_context_student,
   context_within_brood_scaling = fit_context_within_brood_scaling,
   within_between_raw = fit_wb_raw,
   within_between_log = fit_wb_log,
@@ -876,6 +1053,7 @@ pp_biv_size <- pp_check(
   ndraws = 100
 )
 pp_context <- pp_check(fit_context, ndraws = 100)
+pp_context_student <- pp_check(fit_context_student, ndraws = 100)
 
 ggsave(
   "figures/diagnostics/pp_bivariate_egg_number.png",
@@ -897,6 +1075,49 @@ ggsave(
   width = 6,
   height = 4,
   dpi = 300
+)
+ggsave(
+  "figures/diagnostics/pp_context_student.png",
+  pp_context_student,
+  width = 6,
+  height = 4,
+  dpi = 300
+)
+
+# ==========================================================
+# Supplementary figure: egg-number distributions by clutch
+# ==========================================================
+
+egg_number_distribution_figure <- ggplot(
+  df,
+  aes(x = egg.number)
+) +
+  geom_histogram(
+    binwidth = 5,
+    boundary = 0,
+    colour = "black",
+    fill = "grey75"
+  ) +
+  geom_rug(sides = "b", alpha = 0.55) +
+  facet_wrap(~ brood_label, ncol = 1) +
+  labs(
+    x = "Egg number",
+    y = "Number of females"
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    panel.grid = element_blank(),
+    strip.background = element_rect(fill = "white"),
+    strip.text = element_text(face = "bold")
+  )
+
+ggsave(
+  filename = "figures/supplement_egg_number_distributions.png",
+  plot = egg_number_distribution_figure,
+  width = 6.2,
+  height = 6.2,
+  units = "in",
+  dpi = 400
 )
 
 # ==========================================================
@@ -1206,6 +1427,16 @@ print(biv_cor_summary)
 
 cat("\n\n===== PRIMARY BROOD-SPECIFIC SLOPES: POOLED SCALING =====\n")
 print(context_slope_summary)
+
+cat("\n\n===== REVIEWER-REQUESTED INFLUENCE CHECK =====\n")
+print(reviewer_point)
+print(
+  influence_diagnostics %>%
+    filter(reviewer_point | cooks_flag | leverage_flag)
+)
+
+cat("\n\n===== INFLUENCE AND LIKELIHOOD SENSITIVITY =====\n")
+print(context_reviewer_sensitivity_summary)
 
 cat("\n\n===== SENSITIVITY ANALYSIS: WITHIN-BROOD SCALING =====\n")
 print(context_scaling_sensitivity_summary)
