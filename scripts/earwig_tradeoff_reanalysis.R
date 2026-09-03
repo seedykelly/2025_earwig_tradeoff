@@ -93,6 +93,7 @@ cluster_boot_cor <- function(data, x, y, cluster, R = 5000, seed = 123) {
 # =============================================================================
 
 data_path <- case_when(
+  file.exists("data/processed/df_complete_ingested.rds") ~ "data/processed/df_complete_ingested.rds",
   file.exists("data/processed/df.rds") ~ "data/processed/df.rds",
   file.exists("df.rds") ~ "df.rds",
   file.exists("/mnt/data/df.rds") ~ "/mnt/data/df.rds",
@@ -100,25 +101,26 @@ data_path <- case_when(
 )
 
 if (is.na(data_path)) {
-  stop("Could not find df.rds. Put it in data/processed/ or the working directory.")
+  stop("Could not find df_complete_ingested.rds or df.rds. Put one in data/processed/ or the working directory.")
 }
 
 dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)
 dir.create("figures", recursive = TRUE, showWarnings = FALSE)
 
+cat("Loading data from:", data_path, "\n")
 df <- readRDS(data_path) %>%
   mutate(
     id = factor(id),
-    brood = factor(brood, levels = c("one", "two")),
+    brood = factor(brood_label, levels = c("one", "two")),
     brood_label = factor(
-      brood,
+      brood_label,
       levels = c("one", "two"),
       labels = c("First brood", "Second brood")
     ),
     log_egg_number = log(egg.number),
     log_egg_size = log(mean.egg.size),
     mean_egg_size_z = as.numeric(scale(mean.egg.size))
-  )
+  ) 
 
 # Pooled scaling is used in the primary brood-specific model so that a one-SD
 # difference in log egg number has the same meaning in both reproductive bouts.
