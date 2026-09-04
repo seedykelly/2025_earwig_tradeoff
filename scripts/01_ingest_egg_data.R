@@ -61,8 +61,28 @@ if (nrow(id_or_brood_mismatches) > 0) {
   stop("Egg-file names disagree with IDs or brood numbers inside the files.")
 }
 
-if (anyNA(raw_data[, c("id", "brood", "perim", "perim2", "perim3")])) {
-  stop("Missing ID, brood, or replicate perimeter measurements in raw egg data.")
+if (
+  !all(raw_data$brood %in% c(1L, 2L)) ||
+  !all(raw_data$file_brood %in% c(1L, 2L))
+) {
+  stop("Brood codes must be exactly 1 (initial) or 2 (replacement).")
+}
+
+if (anyNA(raw_data[, c("num", "id", "brood", "perim", "perim2", "perim3")])) {
+  stop("Missing egg number, ID, brood, or replicate perimeter measurement in raw egg data.")
+}
+
+duplicate_egg_rows <- raw_data %>%
+  count(source_file, num, name = "n_rows") %>%
+  filter(n_rows != 1L)
+
+if (nrow(duplicate_egg_rows) > 0) {
+  print(duplicate_egg_rows)
+  warning(
+    "Repeated egg-number labels were found within one or more raw files. ",
+    "Egg number is calculated from measurement rows; confirm that each row ",
+    "represents a distinct egg."
+  )
 }
 
 cat("Raw data dimensions:", nrow(raw_data), "eggs x", ncol(raw_data), "columns\n")

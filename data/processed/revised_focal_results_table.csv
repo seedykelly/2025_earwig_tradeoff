@@ -4,9 +4,9 @@ Bivariate covariance,Within-female residual correlation,Proportional (log),-0.28
 Event-specific slope,Initial clutch,Proportional (pooled SD),0.13,"[-0.38, 0.64]",0.30
 Event-specific slope,Replacement clutch,Proportional (pooled SD),-0.31,"[-0.52, -0.09]",>0.99
 Event-specific slope,Replacement minus initial,Proportional (pooled SD),-0.44,"[-0.96, 0.10]",0.95
-Event-specific slope,Initial clutch,Proportional (within-brood SD),0.07,"[-0.20, 0.33]",0.31
-Event-specific slope,Replacement clutch,Proportional (within-brood SD),-0.38,"[-0.64, -0.11]",>0.99
-Event-specific slope,Replacement minus initial,Proportional (within-brood SD),-0.44,"[-0.79, -0.10]",0.99
+Event-specific slope,Initial clutch,Proportional (within-event SD),0.07,"[-0.20, 0.33]",0.31
+Event-specific slope,Replacement clutch,Proportional (within-event SD),-0.38,"[-0.64, -0.11]",>0.99
+Event-specific slope,Replacement minus initial,Proportional (within-event SD),-0.44,"[-0.79, -0.10]",0.99
 Change score,Within-female change,Absolute,-0.05,"[-0.35, 0.25]",0.63
 Change score,Within-female change,Proportional (log),-0.28,"[-0.57, 0.01]",0.97
 Within-between regression,Within-female slope,Absolute,-0.02,"[-0.23, 0.21]",0.56
