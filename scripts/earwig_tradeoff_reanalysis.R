@@ -120,7 +120,7 @@ df <- readRDS(data_path) %>%
     brood_label = factor(
       brood_label,
       levels = c("one", "two"),
-      labels = c("First brood", "Second brood")
+      labels = c("Initial clutch", "Replacement clutch")
     ),
     log_egg_number = log(egg.number),
     log_egg_size = log(mean.egg.size),
@@ -905,11 +905,11 @@ table_1_data <- bind_rows(
   extract_table_rows(
     context_slope_summary,
     terms = c("first", "second", "second_minus_first"),
-    analysis = "Brood-specific slope",
+    analysis = "Event-specific slope",
     parameter = c(
-      "First brood",
-      "Second brood",
-      "Second minus first"
+      "Initial clutch",
+      "Replacement clutch",
+      "Replacement minus initial"
     ),
     scale = c(
       "Proportional (pooled SD)",
@@ -920,11 +920,11 @@ table_1_data <- bind_rows(
   extract_table_rows(
     context_scaling_sensitivity_summary,
     terms = c("first", "second", "second_minus_first"),
-    analysis = "Brood-specific slope",
+    analysis = "Event-specific slope",
     parameter = c(
-      "First brood",
-      "Second brood",
-      "Second minus first"
+      "Initial clutch",
+      "Replacement clutch",
+      "Replacement minus initial"
     ),
     scale = c(
       "Proportional (within-brood SD)",
@@ -1355,10 +1355,10 @@ figure_2 <- ggplot(
   ) +
   labs(
     x = expression(
-      Delta * " egg number (second - first)"
+      Delta * " egg number (replacement - initial)"
     ),
     y = expression(
-      Delta * " mean egg perimeter (mm; second - first)"
+      Delta * " mean egg perimeter (mm; replacement - initial)"
     )
   ) +
   theme_bw(base_size = 12) +
