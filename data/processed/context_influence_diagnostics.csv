@@ -1,4 +1,4 @@
-id,brood,egg.number,mean.egg.size,leverage,cooks_distance,reviewer_point,cooks_flag,leverage_flag
+id,brood,egg.number,mean.egg.size,leverage,cooks_distance,focal_point,cooks_flag,leverage_flag
 9CK10,two,10,4.113,0.08806940058240646,0.1956428235530439,TRUE,TRUE,FALSE
 Q64J9,two,4,3.266,0.14784219812638685,0.12477462762989107,FALSE,TRUE,TRUE
 HMX5M,two,1,3.515,0.29671540083556724,0.10371800477680797,FALSE,TRUE,TRUE
