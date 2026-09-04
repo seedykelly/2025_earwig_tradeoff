@@ -469,16 +469,16 @@ context_slope_summary <- bind_rows(
 # Reviewer-requested influence and likelihood sensitivity analyses
 # =============================================================================
 # Identify the visually conspicuous second-clutch observation reproducibly.
-reviewer_point <- df %>%
+focal_point <- df %>%
   filter(brood == "two") %>%
   slice_max(mean.egg.size, n = 1, with_ties = FALSE) %>%
   select(id, brood, egg.number, mean.egg.size)
 
-if (nrow(reviewer_point) != 1) {
+if (nrow(focal_point) != 1) {
   stop("Could not uniquely identify the conspicuous second-clutch observation.")
 }
 
-reviewer_point_id <- reviewer_point$id[[1]]
+focal_point_id <- focal_point$id[[1]]
 
 # Cook's distance and leverage from an ordinary regression are used only as
 # screening diagnostics. The Bayesian mixed-model refits below are the primary
@@ -496,7 +496,7 @@ influence_diagnostics <- df %>%
     mean.egg.size,
     leverage = hatvalues(screening_lm),
     cooks_distance = cooks.distance(screening_lm),
-    reviewer_point = id == as.character(reviewer_point_id) & brood == "two"
+    focal_point = id == as.character(focal_point_id) & brood == "two"
   ) %>%
   mutate(
     cooks_flag = cooks_distance > 4 / n(),
@@ -510,10 +510,10 @@ write_csv(
 )
 
 context_without_point_dat <- df %>%
-  filter(!(id == reviewer_point_id & brood == "two"))
+  filter(!(id == focal_point_id & brood == "two"))
 
 context_without_female_dat <- df %>%
-  filter(id != reviewer_point_id)
+  filter(id != focal_point_id)
 
 fit_context_without_point <- brm(
   log_egg_size_z ~
@@ -591,7 +591,7 @@ summarise_context_fit <- function(fit, model_label) {
     mutate(model = model_label, .before = term)
 }
 
-context_reviewer_sensitivity_summary <- bind_rows(
+context_influence_sensitivity_summary <- bind_rows(
   context_slope_summary %>%
     mutate(model = "primary_gaussian", .before = term),
   summarise_context_fit(fit_context_without_point, "exclude_observation"),
@@ -600,7 +600,7 @@ context_reviewer_sensitivity_summary <- bind_rows(
 )
 
 write_csv(
-  context_reviewer_sensitivity_summary,
+  context_influence_sensitivity_summary,
   "data/processed/context_reviewer_sensitivity_summary.csv"
 )
 
@@ -1086,7 +1086,7 @@ ggsave(
 )
 
 # ==========================================================
-# Supplementary figure: egg-number distributions by clutch
+# Figure 3: egg-number distributions by clutch
 # ==========================================================
 
 egg_number_distribution_figure <- ggplot(
@@ -1113,7 +1113,7 @@ egg_number_distribution_figure <- ggplot(
   )
 
 ggsave(
-  filename = "figures/supplement_egg_number_distributions.png",
+  filename = "figures/figure_3_egg_number_distributions.png",
   plot = egg_number_distribution_figure,
   width = 6.2,
   height = 6.2,
@@ -1430,14 +1430,14 @@ cat("\n\n===== PRIMARY BROOD-SPECIFIC SLOPES: POOLED SCALING =====\n")
 print(context_slope_summary)
 
 cat("\n\n===== REVIEWER-REQUESTED INFLUENCE CHECK =====\n")
-print(reviewer_point)
+print(focal_point)
 print(
   influence_diagnostics %>%
-    filter(reviewer_point | cooks_flag | leverage_flag)
+    filter(focal_point | cooks_flag | leverage_flag)
 )
 
 cat("\n\n===== INFLUENCE AND LIKELIHOOD SENSITIVITY =====\n")
-print(context_reviewer_sensitivity_summary)
+print(context_influence_sensitivity_summary)
 
 cat("\n\n===== SENSITIVITY ANALYSIS: WITHIN-BROOD SCALING =====\n")
 print(context_scaling_sensitivity_summary)
